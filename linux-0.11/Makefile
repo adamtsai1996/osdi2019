@@ -34,19 +34,19 @@ MATH	=kernel/math/math.a
 LIBS	=lib/lib.a
 
 .c.s:
-@$(CC) $(CFLAGS) -S -o $*.s $<
+	@$(CC) $(CFLAGS) -S -o $*.s $<
 .s.o:
-@$(AS)  -o $*.o $<
+	@$(AS)  -o $*.o $<
 .c.o:
-@$(CC) $(CFLAGS) -c -o $*.o $<
+	@$(CC) $(CFLAGS) -c -o $*.o $<
 
 all:	Image	
 
-Image: boot/bootsect boot/setup tools/system
+Image: boot/bootsect boot/setup boot/hello tools/system
 	@cp -f tools/system system.tmp
 	@strip system.tmp
 	@objcopy -O binary -R .note -R .comment system.tmp tools/kernel
-	@tools/build.sh boot/bootsect boot/setup tools/kernel Image $(ROOT_DEV)
+	@tools/build.sh boot/bootsect boot/setup boot/hello tools/kernel Image $(ROOT_DEV)
 	@rm system.tmp
 	@rm tools/kernel -f
 	@sync
@@ -94,13 +94,16 @@ boot/setup: boot/setup.s
 boot/bootsect: boot/bootsect.s
 	@make bootsect -C boot
 
+boot/hello: boot/hello.s
+	@make hello -C boot
+
 tmp.s:	boot/bootsect.s tools/system
 	@(echo -n "SYSSIZE = (";ls -l tools/system | grep system \
 		| cut -c25-31 | tr '\012' ' '; echo "+ 15 ) / 16") > tmp.s
 	@cat boot/bootsect.s >> tmp.s
 
 clean:
-	@rm -f Image System.map tmp_make core boot/bootsect boot/setup
+	@rm -f Image System.map tmp_make core boot/bootsect boot/setup boot/hello
 	@rm -f init/*.o tools/system boot/*.o typescript* info bochsout.txt
 	@for i in mm fs kernel lib boot; do make clean -C $$i; done 
 info:
