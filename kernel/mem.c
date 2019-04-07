@@ -50,6 +50,27 @@ i386_detect_memory(void)
 		npages * PGSIZE / 1024,
 		npages_basemem * PGSIZE / 1024,
 		npages_extmem * PGSIZE / 1024);
+
+//	npages = 66556K = 16639 pages
+//
+//					=========================	0x40FF000
+//					|						|
+//					|	npages_extmem		|
+//					|	65532K, 16383 pages	|
+//					|						|
+//	EXTPHYSMEM		=========================	0x0100000
+//					|						|
+//					|	hole for I/O		|
+//					|	384K, 96 pages		|
+//					|						|
+//	IOPHYSMEM		=========================	0x00A0000
+//					|						|
+//					|	npages_basemem		|
+//					|	640K, 160 pages		|
+//					|						|
+//                  =========================	0x0000000
+//
+
 }
 
 
@@ -147,6 +168,8 @@ mem_init(void)
 	// to initialize all fields of each struct PageInfo to 0.
 	// Your code goes here:
     /* TODO */
+    pages = (struct PageInfo *) boot_alloc(npages*sizeof(struct PageInfo));
+    memset(pages, 0, npages*sizeof(struct PageInfo));
 
 	//////////////////////////////////////////////////////////////////////
 	// Now that we've allocated the initial kernel data structures, we set
@@ -259,11 +282,29 @@ page_init(void)
 	
     /* TODO */
     size_t i;
-	for (i = 0; i < npages; i++) {
+    pages[0].pp_ref = 1;
+    pages[0].pp_link = 0;
 
-        pages[i].pp_ref = 0;
-        pages[i].pp_link = page_free_list;
-        page_free_list = &pages[i];
+	for (i = 1; i < npages; i++) {
+        if( i < npages_basemem ){
+            pages[i].pp_ref = 0;
+            pages[i].pp_link = page_free_list;
+            page_free_list = &pages[i];
+        }
+        else if( i < EXTPHYSMEM/PGSIZE ){
+            pages[i].pp_ref = 1;
+            pages[i].pp_link = 0;
+        }
+        else if( i < ((uint32_t)nextfree-KERNBASE)/PGSIZE ){
+            pages[i].pp_ref = 1;
+            pages[i].pp_link = 0;
+        }
+        else{
+            pages[i].pp_ref=0;
+            pages[i].pp_link = page_free_list;
+            page_free_list = &pages[i];
+        }
+
     }
 }
 
@@ -281,8 +322,17 @@ page_init(void)
 // Hint: use page2kva and memset
 struct PageInfo *
 page_alloc(int alloc_flags)
-{
+{   
     /* TODO */
+    if(!page_free_list) return 0;
+    struct PageInfo *pg = page_free_list;
+    page_free_list = page_free_list->pp_link;
+    pg->pp_link = 0;
+    
+    if(alloc_flags&ALLOC_ZERO)
+        memset(page2kva(pg),0,PGSIZE);
+    
+    return pg; 
 }
 
 //
@@ -296,6 +346,12 @@ page_free(struct PageInfo *pp)
 	// Hint: You may want to panic if pp->pp_ref is nonzero or
 	// pp->pp_link is not NULL.
     /* TODO */
+
+    if(!pp->pp_ref) panic("pp->pp_ref is nonzero!");
+    if(!pp->pp_link) panic("pp->pp_link is not NULL!");
+    
+    pp->pp_link = page_free_list;
+    page_free_list = pp;
 }
 
 //
@@ -336,6 +392,30 @@ pgdir_walk(pde_t *pgdir, const void *va, int create)
 {
 	// Fill this function in
     /* TODO */
+    
+    // va = virtual address of target
+    // *pte_pa = the physical addr of target page table
+    // pte_va = the kernel virtual addr of target page table
+    // ( the cpu only understand the virtual addr)
+    // so pte_va[va] is the virtual addr of our target page entry
+    
+    pte_t *pte_pa = &pgdir[PDX(va)];
+    pte_t *pte_va;
+    struct PageInfo *pg;
+
+    if( *pte_pa & PTE_P ) {
+        *pte_va = KADDR(PTE_ADDR(*pte_va)); 
+        return &pte_va[PTX(va)];
+    }
+
+    if( !create ) return NULL;
+    if( !(pg = page_alloc(ALLOC_ZERO)) ) return NULL;
+    
+    pg->pp_ref++;
+    *pte_pa = page2pa(pg)|PTE_P|PTE_W|PTE_U;
+    *pte_va = page2kva(pg);
+    return &pte_va[PTX(va)];
+
 }
 
 //
