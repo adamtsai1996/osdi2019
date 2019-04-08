@@ -128,6 +128,9 @@ trap_dispatch(struct Trapframe *tf)
 		case IRQ_OFFSET + IRQ_TIMER:
 			timer_handler();
 			break;
+        case T_PGFLT:
+            page_fault_handler(tf);
+            break;
 		default:
 			print_trapframe(tf);
 	}
@@ -172,13 +175,22 @@ void trap_init()
    */
 	extern void irq_kbd();
 	extern void irq_timer();
-	
+	extern void t_pgflt();
+
 	/* Keyboard interrupt setup */
-	SETGATE( idt[IRQ_OFFSET+IRQ_KBD], 0, GD_KT, irq_kbd, 0 )
+	SETGATE( idt[IRQ_OFFSET+IRQ_KBD], 0, GD_KT, irq_kbd, 0 );
 	
-	/* Timer Trap setup */
-	SETGATE( idt[IRQ_OFFSET+IRQ_TIMER], 0, GD_KT, irq_timer, 0 )
+	/* Timer interrupt setup */
+	SETGATE( idt[IRQ_OFFSET+IRQ_TIMER], 0, GD_KT, irq_timer, 0 );
+    
+    /* Page fault trap setup*/
+    SETGATE( idt[T_PGFLT], 1, GD_KT, t_pgflt, 0);
 
   	/* Load IDT */
 	lidt(&pdesc_idt);
+}
+
+void page_fault_handler(struct Trapframe* tf){
+    cprintf("page fault rc2: 0x%08x\n", rcr2());
+    while(1);
 }

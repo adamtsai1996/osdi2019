@@ -24,7 +24,7 @@
  */
 TRAPHANDLER_NOEC(irq_kbd, IRQ_OFFSET + IRQ_KBD)
 TRAPHANDLER_NOEC(irq_timer, IRQ_OFFSET + IRQ_TIMER)
-
+TRAPHANDLER_NOEC(t_pgflt, T_PGFLT)
 
 .globl default_trap_handler;
 _alltraps:
