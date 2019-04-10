@@ -56,20 +56,21 @@ i386_detect_memory(void)
 //					=========================	0x40FF000
 //					|						|
 //					|	npages_extmem		|
-//					|	65532K, 16383 pages	|
-//					|						|
+//					|	65532K, 16383 pages	|	<-nextfree
+//					|						|		
 //	EXTPHYSMEM		=========================	0x0100000
-//					|						|
-//					|	hole for I/O		|
-//					|	384K, 96 pages		|
-//					|						|
+//					|						|				Motherboard BIOS ROM
+//					|	hole for I/O		|				Mapped hardware & Misc ROM
+//					|	384K, 96 pages		|				Video BIOS ROM
+//					|						|				Video RAM
 //	IOPHYSMEM		=========================	0x00A0000
-//					|						|
-//					|	npages_basemem		|
-//					|	640K, 160 pages		|
-//					|						|
+//					|						|				EBDA
+//					|	npages_basemem		|				BDA
+//					|	640K, 160 pages		|				bootsector
+//					|						|				real mode IVT
 //                  =========================	0x0000000
 //
+//	https://www.cnblogs.com/sansna/articles/9071243.html
 
 }
 
@@ -144,6 +145,7 @@ mem_init(void)
     page_free_list = 0;
 
 	// Find out how much memory the machine has (npages & npages_basemem).
+	// set npages and npages_basemem
 	i386_detect_memory();
 
 	//////////////////////////////////////////////////////////////////////
