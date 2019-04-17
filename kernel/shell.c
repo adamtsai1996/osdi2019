@@ -13,7 +13,8 @@ struct Command {
 static struct Command commands[] = {
 	{ "help", "Display this list of commands", mon_help },
 	{ "kerninfo", "Display information about the kernel", mon_kerninfo },
-	{ "print_tick", "Display system tick", print_tick }
+	{ "print_tick", "Display system tick", print_tick },
+	{ "chgcolor", "Change the screen text color", chg_color},
 };
 #define NCOMMANDS (sizeof(commands)/sizeof(commands[0]))
 
@@ -30,16 +31,43 @@ int mon_help(int argc, char **argv)
 int mon_kerninfo(int argc, char **argv)
 {
 	/* TODO: Print the kernel code and data section size 
-   * NOTE: You can count only linker script (kernel/kern.ld) to
-   *       provide you with those information.
-   *       Use PROVIDE inside linker script and calculate the
-   *       offset.
-   */
+   	* NOTE: You can count only linker script (kernel/kern.ld) to
+   	*       provide you with those information.
+   	*       Use PROVIDE inside linker script and calculate the
+   	*       offset.
+   	*/
+	
+	extern uint32_t kernel_load_addr[], etext[], data_seg[], end[];
+	uint32_t _text_start = (uint32_t)kernel_load_addr;
+	uint32_t _text_end = (uint32_t)etext;
+	uint32_t _data_start = (uint32_t)data_seg;
+	uint32_t _end = (uint32_t)end;
+	cprintf("Kernel code base start=0x%08x size = %u\n", _text_start, _text_end - _text_start );
+	cprintf("Kernel data base start=0x%08x size = %u\n", _data_start, _end - _data_start );
+	cprintf("Kernel executable memory footprint: %uKB\n", (_end - _text_start)>>10 );
+
 	return 0;
 }
+
 int print_tick(int argc, char **argv)
 {
 	cprintf("Now tick = %d\n", get_tick());
+	return 0;
+}
+
+int chg_color(int argc, char **argv)
+{
+	if(argc<2) {
+		cprintf("No input text color!\n");
+		return 0;
+	}
+	uint8_t bg = 0x00;
+	uint8_t fg = argv[1][0]-'0';
+	if(argv[1][0]>='A' && argv[1][0]<='F') fg = 10 + argv[1][0]-'A';
+	else if(argv[1][0]>='a' && argv[1][0]<='f') fg = 10 + argv[1][0]-'a';
+	settextcolor(fg,bg);
+	cprintf("chgcolor %u!\n",fg);
+	return 0;
 }
 
 #define WHITESPACE "\t\r\n "
@@ -87,7 +115,7 @@ void shell()
 	char *buf;
 	cprintf("Welcome to the OSDI course!\n");
 	cprintf("Type 'help' for a list of commands.\n");
-
+	
 	while(1)
 	{
 		buf = readline("OSDI> ");
