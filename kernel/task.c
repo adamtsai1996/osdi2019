@@ -98,18 +98,33 @@ extern void sched_yield(void);
 int task_create()
 {
 	Task *ts = NULL;
-
+	int i,new_pid=0;
+	uint32_t va; 
+	
 	/* Find a free task structure */
+	for( i=0; i<NR_TASKS; i++){
+		if( tasks[i].state==TASK_FREE){
+			ts = &tasks[i];
+			new_pid = i;
+			break;
+		}
+	}
+	if(!ts) return -1;
 
-  /* Setup Page Directory and pages for kernel*/
-  if (!(ts->pgdir = setupkvm()))
-    panic("Not enough memory for per process page directory!\n");
+	/* Setup Page Directory and pages for kernel*/
+	if (!(ts->pgdir = setupkvm()))
+		panic("Not enough memory for per process page directory!\n");
 
-  /* Setup User Stack */
+	/* Setup User Stack */
+	for( va=USTACKTOP-USR_STACK_SIZE ; va<USTACKTOP ; va+=PGSIZE ){
+		struct PageInfo *pg=page_alloc(ALLOC_ZERO);
+		if( !pg ) panic("task_create():page_alloc() failed");
+		if( page_insert(ts->pgdir, pg, (void*)va, PTE_U|PTE_W)!=0)
+			panic("task_creat():page_insert failed");
+	}
 
 	/* Setup Trapframe */
 	memset( &(ts->tf), 0, sizeof(ts->tf));
-
 	ts->tf.tf_cs = GD_UT | 0x03;
 	ts->tf.tf_ds = GD_UD | 0x03;
 	ts->tf.tf_es = GD_UD | 0x03;
@@ -117,6 +132,15 @@ int task_create()
 	ts->tf.tf_esp = USTACKTOP-PGSIZE;
 
 	/* Setup task structure (task_id and parent_id) */
+	ts->task_id = new_pid;
+	
+	ts->parent_id = 0;
+	if(cur_task) ts->parent_id = cur_task->task_id;
+	
+	ts->state = TASK_RUNNABLE;
+	ts->remind_ticks = TIME_QUANT;
+	
+	return new_pid;
 }
 
 
@@ -139,17 +163,37 @@ int task_create()
  */
 static void task_free(int pid)
 {
+	pte_t *usr_pgdir = tasks[pid].pgdir;
+	char *va;
+
+	/* Step1 */
+	lcr3(PADDR(kern_pgdir));
+	
+	/* Step2 */
+	for( va=USTACKTOP-USR_STACK_SIZE ; va<USTACKTOP ; va+=PGSIZE )
+		page_remove(usr_pgdir, va);
+
+	
+	/* Step3 */	
+	ptable_remove(usr_pgdir);
+
+	/* Step3 */
+	pgdir_remove(usr_pgdir);
 }
 
 void sys_kill(int pid)
 {
-	if (pid > 0 && pid < NR_TASKS)
+
+	if ( pid>0 && pid<NR_TASKS )
 	{
-	/* TODO: Lab 5
-   * Remember to change the state of tasks
-   * Free the memory
-   * and invoke the scheduler for yield
-   */
+		/* TODO: Lab 5
+		 * Remember to change the state of tasks
+		 * Free the memory
+		 * and invoke the scheduler for yield
+		 */
+		tasks[pid].state = TASK_FREE;
+		task_free(pid);
+		sched_yield();
 	}
 }
 
@@ -179,17 +223,43 @@ void sys_kill(int pid)
  */
 int sys_fork()
 {
-  /* pid for newly created process */
-  int pid;
+	/* pid for newly created process */
+	/* Step1 */
+	int pid = task_create();
+	pte_t *pgdir = tasks[pid].pgdir;
+	uint32_t va;
+
+	if( pid<0 ) return -1;
+
 	if ((uint32_t)cur_task)
 	{
-    /* Step 4: All user program use the same code for now */
-    setupvm(tasks[pid].pgdir, (uint32_t)UTEXT_start, UTEXT_SZ);
-    setupvm(tasks[pid].pgdir, (uint32_t)UDATA_start, UDATA_SZ);
-    setupvm(tasks[pid].pgdir, (uint32_t)UBSS_start, UBSS_SZ);
-    setupvm(tasks[pid].pgdir, (uint32_t)URODATA_start, URODATA_SZ);
+		/* Step2 */
+		tasks[pid].tf = cur_task->tf;
 
+		/* Step3 */
+		for( va=USTACKTOP-USR_STACK_SIZE ; va<USTACKTOP ; va+=PGSIZE ){
+			
+			pte_t *child_pte	= pgdir_walk(pgdir, (void*)va, 0);
+			pte_t *parent_pte	= pgdir_walk(cur_task->pgdir, (void*)va, 0);
+
+			void *child_kva		= KADDR(PTE_ADDR(*child_pte));
+			void *parent_kva	= KADDR(PTE_ADDR(*parent_pte)); 
+			
+			memcpy( child_kva, parent_kva, PGSIZE);
+		}
+
+		/* Step 4: All user program use the same code for now */
+		setupvm(pgdir, (uint32_t)UTEXT_start, UTEXT_SZ);
+		setupvm(pgdir, (uint32_t)UDATA_start, UDATA_SZ);
+		setupvm(pgdir, (uint32_t)UBSS_start, UBSS_SZ);
+		setupvm(pgdir, (uint32_t)URODATA_start, URODATA_SZ);
+
+		/* Step 5 */
+		tasks[pid].tf.tf_regs.reg_eax = 0;
+//		cur_task->tf.tf_regs.reg_eax = pid;
 	}
+
+	return pid;
 }
 
 /* TODO: Lab5
@@ -198,20 +268,20 @@ int sys_fork()
  */
 void task_init()
 {
-  extern int user_entry();
+	extern int user_entry();
 	int i;
-  UTEXT_SZ = (uint32_t)(UTEXT_end - UTEXT_start);
-  UDATA_SZ = (uint32_t)(UDATA_end - UDATA_start);
-  UBSS_SZ = (uint32_t)(UBSS_end - UBSS_start);
-  URODATA_SZ = (uint32_t)(URODATA_end - URODATA_start);
+	UTEXT_SZ = (uint32_t)(UTEXT_end - UTEXT_start);
+	UDATA_SZ = (uint32_t)(UDATA_end - UDATA_start);
+	UBSS_SZ = (uint32_t)(UBSS_end - UBSS_start);
+	URODATA_SZ = (uint32_t)(URODATA_end - URODATA_start);
 
 	/* Initial task sturcture */
 	for (i = 0; i < NR_TASKS; i++)
 	{
 		memset(&(tasks[i]), 0, sizeof(Task));
 		tasks[i].state = TASK_FREE;
-
 	}
+
 	// Setup a TSS so that we get the right stack
 	// when we trap to the kernel.
 	memset(&(tss), 0, sizeof(tss));
@@ -230,25 +300,21 @@ void task_init()
 	i = task_create();
 	cur_task = &(tasks[i]);
 
-  /* For user program */
-  setupvm(cur_task->pgdir, (uint32_t)UTEXT_start, UTEXT_SZ);
-  setupvm(cur_task->pgdir, (uint32_t)UDATA_start, UDATA_SZ);
-  setupvm(cur_task->pgdir, (uint32_t)UBSS_start, UBSS_SZ);
-  setupvm(cur_task->pgdir, (uint32_t)URODATA_start, URODATA_SZ);
-  cur_task->tf.tf_eip = (uint32_t)user_entry;
+	/* For user program */
+	setupvm(cur_task->pgdir, (uint32_t)UTEXT_start, UTEXT_SZ);
+	setupvm(cur_task->pgdir, (uint32_t)UDATA_start, UDATA_SZ);
+	setupvm(cur_task->pgdir, (uint32_t)UBSS_start, UBSS_SZ);
+	setupvm(cur_task->pgdir, (uint32_t)URODATA_start, URODATA_SZ);
+	cur_task->tf.tf_eip = (uint32_t)user_entry;
 	
 	/* Load GDT&LDT */
 	lgdt(&gdt_pd);
-
 
 	lldt(0);
 
 	// Load the TSS selector 
 	ltr(GD_TSS0);
 
-	cur_task->state = TASK_RUNNING;
-	
+	cur_task->state = TASK_RUNNING;	
 }
-
-
 

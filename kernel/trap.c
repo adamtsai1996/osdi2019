@@ -215,7 +215,7 @@ void trap_init()
 
   /* Using custom trap handler */
 	extern void PGFLT();
-  register_handler(T_PGFLT, page_fault_handler, PGFLT, 1, 0);
+	register_handler(T_PGFLT, page_fault_handler, PGFLT, 1, 0);
 
 	lidt(&idt_pd);
 }

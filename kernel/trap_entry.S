@@ -45,7 +45,7 @@ TRAPHANDLER_NOEC(TIM_ISR, IRQ_OFFSET+IRQ_TIMER)
 TRAPHANDLER(GPFLT, T_GPFLT)
 TRAPHANDLER(STACK_ISR, T_STACK)
 TRAPHANDLER(PGFLT, T_PGFLT)
-
+TRAPHANDLER_NOEC(SYSCALL, T_SYSCALL )
 .globl default_trap_handler;
 _alltraps:
 	/* Lab3: Push the registers into stack( fill the Trapframe structure )

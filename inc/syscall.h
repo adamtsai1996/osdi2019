@@ -33,7 +33,7 @@ int32_t fork(void);
 
 int32_t getpid(void);
 
-void kill_self();
+void kill_self(void);
 
 void sleep(uint32_t ticks);
 

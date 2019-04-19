@@ -67,7 +67,7 @@ char *readline(const char *prompt)
           cprintf("\b");
       }
 
-      for (curr_idx ; curr_idx < NCOMMANDS ; curr_idx ++) {
+      for (curr_idx ; curr_idx < NCOMMANDS ; curr_idx++) {
         if (strncmp(commands[curr_idx].name, buf, i) == 0) {
           // Show the found command, instead of changing the current buffer
           cprintf("%s", commands[curr_idx].name+i);

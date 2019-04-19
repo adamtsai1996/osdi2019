@@ -213,7 +213,7 @@ mem_init(void)
     boot_map_region(kern_pgdir, KSTACKTOP-KSTKSIZE, ROUNDUP(KSTKSIZE, PGSIZE), PADDR(bootstack), (PTE_P | PTE_W));
     //boot_map_region(kern_pgdir, KSTACKTOP-PTSIZE, ROUNDUP(PTSIZE-KSTKSIZE, PGSIZE), ,);
 
-	//////////////////////////////////////////////////////////////////////
+    /////////////////////////////////////////////////////////////////////
 	// Map all of physical memory at KERNBASE.
 	// Ie.  the VA range [KERNBASE, 2^32) should map to
 	//      the PA range [0, 2^32 - KERNBASE)
@@ -228,7 +228,9 @@ mem_init(void)
 	//////////////////////////////////////////////////////////////////////
 	// Map VA range [IOPHYSMEM, EXTPHYSMEM) to PA range [IOPHYSMEM, EXTPHYSMEM)
     boot_map_region(kern_pgdir, IOPHYSMEM, ROUNDUP((EXTPHYSMEM - IOPHYSMEM), PGSIZE), IOPHYSMEM, (PTE_W) | (PTE_P));
+	
 
+	
 	// Check that the initial page directory has been set up correctly.
 	check_kern_pgdir();
 
@@ -297,6 +299,7 @@ page_init(void)
             pages[i].pp_ref = 0;
             pages[i].pp_link = page_free_list;
             page_free_list = &pages[i];
+			num_free_pages++;
         }
         else if( i < EXTPHYSMEM/PGSIZE ){
             pages[i].pp_ref = 1;
@@ -310,6 +313,7 @@ page_init(void)
             pages[i].pp_ref=0;
             pages[i].pp_link = page_free_list;
             page_free_list = &pages[i];
+			num_free_pages++;
         }
 
     }
@@ -339,7 +343,9 @@ page_alloc(int alloc_flags)
         memset(page2kva(pg),0,PGSIZE);
     
     pg->pp_link = 0;
-    
+		
+	num_free_pages--;
+
     return pg; 
 }
 
@@ -360,6 +366,8 @@ page_free(struct PageInfo *pp)
     
     pp->pp_link = page_free_list;
     page_free_list = pp;
+
+	num_free_pages++;
 }
 
 //
@@ -442,7 +450,7 @@ boot_map_region(pde_t *pgdir, uintptr_t va, size_t size, physaddr_t pa, int perm
 {
     /* TODO */
     while(size>0){
-        pte_t *pte = pgdir_walk(pgdir, va, 1);
+        pte_t *pte = pgdir_walk(pgdir,(void*) va, 1);
         *pte = pa | perm | PTE_P;
         va = va + PGSIZE;
         pa = pa + PGSIZE;
@@ -593,7 +601,17 @@ setupvm(pde_t *pgdir, uint32_t start, uint32_t size)
  */
 pde_t *
 setupkvm()
-{
+{	
+	struct PageInfo *pg = page_alloc(ALLOC_ZERO);
+	if(!pg) return NULL;
+	
+	pde_t *pgdir = page2kva(pg);
+	boot_map_region(pgdir, UPAGES, ROUNDUP((sizeof(struct PageInfo) * npages), PGSIZE), PADDR(pages), (PTE_U | PTE_P));
+    boot_map_region(pgdir, KSTACKTOP-KSTKSIZE, ROUNDUP(KSTKSIZE, PGSIZE), PADDR(bootstack), (PTE_P | PTE_W));
+    boot_map_region(pgdir, KERNBASE, ROUNDUP(-KERNBASE, PGSIZE), 0, (PTE_P | PTE_W));
+    boot_map_region(pgdir, IOPHYSMEM, ROUNDUP((EXTPHYSMEM - IOPHYSMEM), PGSIZE), IOPHYSMEM, (PTE_W) | (PTE_P));
+	
+	return pgdir;
 }
 
 

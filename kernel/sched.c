@@ -22,5 +22,33 @@
 void sched_yield(void)
 {
 	extern Task tasks[];
+
+	/* Step1 */
 	extern Task *cur_task;
+
+	/* Step2 */
+	int next=cur_task->task_id;
+	int i = (cur_task->task_id+1)%NR_TASKS;
+	for( ; i!=cur_task->task_id ; i=(i+1)%NR_TASKS)
+		if(tasks[i].state == TASK_RUNNABLE){
+			next = i;
+			break;
+		}
+	
+	/* Step3 */
+	if( next==cur_task->task_id ){
+		if(cur_task->state==TASK_RUNNABLE){
+			cur_task->state=TASK_RUNNING;
+			tasks[i].remind_ticks = TIME_QUANT;
+		}
+		return;
+	}
+	
+	cur_task = &tasks[next];
+	cur_task->state = TASK_RUNNING;
+	cur_task->remind_ticks = TIME_QUANT;
+	lcr3(PADDR(cur_task->pgdir));
+
+	/* Step4 */
+	ctx_switch(cur_task);
 }
