@@ -41,7 +41,7 @@ void sched_yield(void)
 			cur_task->state=TASK_RUNNING;
 			tasks[i].remind_ticks = TIME_QUANT;
 		}
-		return;
+		ctx_switch(cur_task);
 	}
 	
 	cur_task = &tasks[next];

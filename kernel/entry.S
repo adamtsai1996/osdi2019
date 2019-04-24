@@ -18,7 +18,8 @@ entry:
 	# translates virtual addresses [KERNBASE, KERNBASE+4MB) to
 	# physical addresses [0, 4MB).  This 4MB region will be
 	# sufficient until we set up our real page table in mem_init.
-
+	
+	# clear the bss segment (uninitialized global variables)
     movl $0, %eax
     movl $(RELOC(bss_start)), %edi
     movl $(RELOC(end)), %ecx
@@ -42,9 +43,8 @@ entry:
 	jmp	*%eax
 
 relocated:
-
-  # Setup new gdt
-  lgdt    kgdtdesc
+	# Setup new gdt
+	lgdt    kgdtdesc
 
 	# Setup kernel stack
 	movl $0, %ebp
@@ -54,25 +54,27 @@ relocated:
 die:
 	jmp die
 
-  .p2align 2                                # force 4 byte alignment
+	.p2align 2                                # force 4 byte alignment
 
 kgdt:
-  SEG_NULL    # NULL segment
+	SEG_NULL    # NULL segment
 
-  SEG(STA_X|STA_R, 0x0, 0xffffffff)   # Kernel code segment
-  SEG(STA_W, 0x0, 0xffffffff)         # Kernel data segment
+	SEG(STA_X|STA_R, 0x0, 0xffffffff)   # Kernel code segment
+	SEG(STA_W, 0x0, 0xffffffff)         # Kernel data segment
 
 kgdtdesc:
-  .word   0x17        # sizeof(gdt) - 1
-  .long   kgdt
+	.word   0x17        # sizeof(gdt) - 1
+	.long   kgdt
 
-.bss
-  .align    PGSIZE
+	.bss
+	.align  PGSIZE
 	# There is kernel initial stack
-	.globl		bootstack
-.p2align 12
+	.globl	bootstack
+	.p2align 12
+
 bootstack:
 	.space		KSTKSIZE
 	.globl		bootstacktop   
+
 bootstacktop:
 

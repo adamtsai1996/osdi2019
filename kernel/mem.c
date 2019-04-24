@@ -25,32 +25,30 @@ size_t                   num_free_pages;
 // --------------------------------------------------------------
 
 static int
-nvram_read(int r)
-{
-  return mc146818_read(r) | (mc146818_read(r + 1) << 8);
+nvram_read(int r){
+	return mc146818_read(r) | (mc146818_read(r + 1) << 8);
 }
 
 static void
-i386_detect_memory(void)
-{
-  size_t npages_extmem;
+i386_detect_memory(void){
+	size_t npages_extmem;
 
-  // Use CMOS calls to measure available base & extended memory.
-  // (CMOS calls return results in kilobytes.)
-  npages_basemem = (nvram_read(NVRAM_BASELO) * 1024) / PGSIZE;
-  npages_extmem = (nvram_read(NVRAM_EXTLO) * 1024) / PGSIZE;
+	// Use CMOS calls to measure available base & extended memory.
+	// (CMOS calls return results in kilobytes.)
+	npages_basemem = (nvram_read(NVRAM_BASELO) * 1024) / PGSIZE;
+	npages_extmem = (nvram_read(NVRAM_EXTLO) * 1024) / PGSIZE;
 
-  // Calculate the number of physical pages available in both base
-  // and extended memory.
-  if (npages_extmem)
-    npages = (EXTPHYSMEM / PGSIZE) + npages_extmem;
-  else
-    npages = npages_basemem;
+	// Calculate the number of physical pages available in both base
+	// and extended memory.
+	if (npages_extmem)
+		npages = (EXTPHYSMEM / PGSIZE) + npages_extmem;
+	else
+		npages = npages_basemem;
 
-  printk("Physical memory: %uK available, base = %uK, extended = %uK\n",
-      npages * PGSIZE / 1024,
-      npages_basemem * PGSIZE / 1024,
-      npages_extmem * PGSIZE / 1024);
+	printk("Physical memory: %uK available, base = %uK, extended = %uK\n",
+		npages * PGSIZE / 1024,
+		npages_basemem * PGSIZE / 1024,
+		npages_extmem * PGSIZE / 1024);
 
 //	npages = 66556K = 16639 pages
 //

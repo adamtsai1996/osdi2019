@@ -119,10 +119,10 @@ int32_t do_syscall(uint32_t syscallno, uint32_t a1, uint32_t a2, uint32_t a3, ui
 static void syscall_handler(struct Trapframe *tf)
 {
 	/* TODO: Lab5
-   * call do_syscall
-   * Please remember to fill in the return value
-   * HINT: You have to know where to put the return value
-   */
+	 * call do_syscall
+	 * Please remember to fill in the return value
+	 * HINT: You have to know where to put the return value
+	 */
 	struct PushRegs *regs = &tf->tf_regs;
 	regs->reg_eax = do_syscall(
 			regs->reg_eax, regs->reg_edx, regs->reg_ecx,
@@ -132,10 +132,10 @@ static void syscall_handler(struct Trapframe *tf)
 
 void syscall_init()
 {
-  /* TODO: Lab5
-   * Please set gate of system call into IDT
-   * You can leverage the API register_handler in kernel/trap.c
-   */
+	/* TODO: Lab5
+	 * Please set gate of system call into IDT
+	 * You can leverage the API register_handler in kernel/trap.c
+	 */
 	extern void SYSCALL();
 	register_handler(T_SYSCALL, &syscall_handler, SYSCALL, 1, 3);
 }
