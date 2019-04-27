@@ -32,26 +32,37 @@ void kernel_main(void)
   	syscall_init();
 	boot_aps();
 
-  printk("Kernel code base start=0x%08x to = 0x%08x\n", stext, etext);
-  printk("Readonly data start=0x%08x to = 0x%08x\n", etext, rdata_end);
-  printk("Kernel data base start=0x%08x to = 0x%08x\n", data_start, end);
+    printk("Kernel code base start=0x%08x to = 0x%08x\n", stext, etext);
+    printk("Readonly data start=0x%08x to = 0x%08x\n", etext, rdata_end);
+    printk("Kernel data base start=0x%08x to = 0x%08x\n", data_start, end);
 
 
-  /* Enable interrupt */
-  __asm __volatile("sti");
+	/* Enable interrupt */
+	__asm __volatile("sti");
 
-  lcr3(PADDR(cur_task->pgdir));
+	lcr3(PADDR(cur_task->pgdir));
 
-  /* Move to user mode */
-  asm volatile("movl %0,%%eax\n\t" \
-  "pushl %1\n\t" \
-  "pushl %%eax\n\t" \
-  "pushfl\n\t" \
-  "pushl %2\n\t" \
-  "pushl %3\n\t" \
-  "iret\n" \
-  :: "m" (cur_task->tf.tf_esp), "i" (GD_UD | 0x03), "i" (GD_UT | 0x03), "m" (cur_task->tf.tf_eip)
-  :"ax");
+	/* Move to user mode */
+	asm volatile(
+		"movl %0,%%eax\n\t" \
+		"pushl %1\n\t" \
+		"pushl %%eax\n\t" \
+		"pushfl\n\t" \
+		"pushl %2\n\t" \
+		"pushl %3\n\t" \
+		"iret\n" \
+		:: "m" (cur_task->tf.tf_esp), "i" (GD_UD | 0x03), "i" (GD_UT | 0x03), "m" (cur_task->tf.tf_eip)
+		:"ax"
+	);
+	/*	iret :
+	 *		pop eip
+	 *		pop cs
+	 *		pop	EFLAGS
+	 *		if( return to another privilege level )
+	 *			pop sp, ss
+	 *		if( return to virual 8086 mode )
+	 *			pop ds
+	 */
 }
 
 // While boot_aps is booting a given CPU, it communicates the per-core

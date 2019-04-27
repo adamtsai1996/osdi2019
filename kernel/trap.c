@@ -129,6 +129,30 @@ env_pop_tf(struct Trapframe *tf)
 		"\tiret"
 		: : "g" (tf) : "memory");
 	panic("iret failed");  /* mostly to placate the compiler */
+
+	/*	What does the INT do ?
+	 *	(these will be similar to all interrupts and faults, through there are slight differences)
+	 *
+	 *		1.	decide the vector number, in this case syscall is the 0x30
+	 *	
+	 *		2.	fetch the interrupt descriptor for vector 0x30 frome the IDT.
+	 *			CPU finds it bv taking the 0x30'th 8-byte entry starting at
+	 *			the physical address that the IDTR CPU register point to.
+	 *		
+	 *		3.	check that CPL<=DPL in the descriptor.
+	 *			(but only if INT instruction)
+	 *
+	 *		4.	save ESP and SS in a CPU-internal register.
+	 *			(but only if target segment selector's PL<CPL)
+	 *
+	 *		5.	load SS and ESP from TSS
+	 *
+	 *		6.	push user SS, ESP, EFLAGS, CS, EIP
+	 *
+	 *		7.	clear some EFLAGS bits
+	 *
+	 *		8.	set CS and EIP from IDT descriptor's segment selector and offset
+	 */
 }
 
 static void
@@ -215,7 +239,7 @@ void trap_init()
 
   /* Using custom trap handler */
 	extern void PGFLT();
-  register_handler(T_PGFLT, page_fault_handler, PGFLT, 1, 0);
+	register_handler(T_PGFLT, page_fault_handler, PGFLT, 1, 0);
 
 	lidt(&idt_pd);
 }

@@ -168,15 +168,15 @@ int spinlocktest(int argc, char **argv)
 
 void shell()
 {
-  char *buf;
-  hist_head = 0;
-  hist_tail = 0;
-  hist_curr = 0;
+	cprintf("Welcome to the OSDI course!\n");
+	cprintf("Type 'help' for a list of commands.\n");
 
-  cprintf("Welcome to the OSDI course!\n");
-  cprintf("Type 'help' for a list of commands.\n");
+	char *buf;
+	hist_head = 0;
+	hist_tail = 0;
+	hist_curr = 0;
 
-  while(1)
+    while(1)
   {
     buf = readline("OSDI> ");
     if (buf != NULL)

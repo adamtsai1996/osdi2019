@@ -42,10 +42,10 @@ TRAPHANDLER_NOEC(TIM_ISR, IRQ_OFFSET+IRQ_TIMER)
 // TODO: Lab 5
 // Please add interface of system call
 
-TRAPHANDLER_NOEC(GPFLT, T_GPFLT)
-TRAPHANDLER_NOEC(STACK_ISR, T_STACK)
-TRAPHANDLER_NOEC(PGFLT, T_PGFLT)
-
+TRAPHANDLER(GPFLT, T_GPFLT)
+TRAPHANDLER(STACK_ISR, T_STACK)
+TRAPHANDLER(PGFLT, T_PGFLT)
+TRAPHANDLER_NOEC(SYSCALL, T_SYSCALL )
 .globl default_trap_handler;
 _alltraps:
 	/* Lab3: Push the registers into stack( fill the Trapframe structure )
