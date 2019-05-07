@@ -2,6 +2,7 @@
 #include <inc/kbd.h>
 #include <inc/shell.h>
 #include <inc/x86.h>
+#include <inc/string.h>
 #include <kernel/mem.h>
 #include <kernel/trap.h>
 #include <kernel/picirq.h>
@@ -40,7 +41,7 @@ void kernel_main(void)
 	/* Enable interrupt */
 	__asm __volatile("sti");
 
-	lcr3(PADDR(cur_task->pgdir));
+	lcr3(PADDR(thiscpu->cpu_task->pgdir));
 
 	/* Move to user mode */
 	asm volatile(
@@ -51,10 +52,10 @@ void kernel_main(void)
 		"pushl %2\n\t" \
 		"pushl %3\n\t" \
 		"iret\n" \
-		::	"m" (cur_task->tf.tf_esp),
+		::	"m" (thiscpu->cpu_task->tf.tf_esp),
 			"i" (GD_UD | 0x03),
 			"i" (GD_UT | 0x03),
-			"m" (cur_task->tf.tf_eip)
+			"m" (thiscpu->cpu_task->tf.tf_eip)
 		:	"ax");
 	
 	/* iret :
@@ -75,8 +76,7 @@ void *mpentry_kstack;
 
 // Start the non-boot (AP) processors.
 static void
-boot_aps(void)
-{
+boot_aps(void) {
 	// TODO: Lab6
 	//
 	// 1. Write AP entry code (kernel/mpentry.S) to unused memory
@@ -91,10 +91,8 @@ boot_aps(void)
 	//      -- Wait for the CPU to finish some basic setup in mp_main(
 	//
 	// Your code here:
+	extern char mpentry_start[], mpentry_end[];
 	int i;
-	int id = cpunum();
-	int kstacktop_i = KSTACKTOP;
-	extern uint32_t mpentry_start, mpentry_end;
 	
 	memmove(
 		KADDR(MPENTRY_PADDR),
@@ -102,9 +100,9 @@ boot_aps(void)
 		mpentry_end-mpentry_start);
 	
 	for( i=0; i<ncpu; i++) {
-		if(id==i) continue;
+		if(i==cpunum()) continue;
 		mpentry_kstack = percpu_kstacks[i]+KSTKSIZE;
-		lapic_startap(id, MPENTRY_PADDR);
+		lapic_startap(i, MPENTRY_PADDR);
 		while( cpus[i].cpu_status!=CPU_STARTED );
 	}
 }

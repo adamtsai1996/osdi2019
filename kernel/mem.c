@@ -90,7 +90,7 @@ static void check_page_free_list(bool only_low_memory);
 static void check_page_alloc(void);
 static void check_kern_pgdir(void);
 static physaddr_t check_va2pa(pde_t *pgdir, uintptr_t va);
-static void check_page(0void);
+static void check_page(void);
 static void check_page_installed_pgdir(void);
 
 // This simple physical memory allocator is used only while JOS is setting
@@ -298,7 +298,7 @@ mem_init_mp(void) {
 	//             it will fault rather than overwrite another CPU's stack.
 	//             Known as a "guard page".
 	//     Permissions: kernel RW, user NONE
-	uint32_t kstacktop_i = xxKSTACKTOP;
+	uint32_t kstacktop_i = KSTACKTOP;
 	int i;
 	for( i=0; i<NCPU; i++) {
 		boot_map_region(
@@ -307,7 +307,7 @@ mem_init_mp(void) {
 			ROUNDUP(KSTKSIZE, PGSIZE),
 			PADDR(percpu_kstacks[i]),
 			(PTE_P | PTE_W));
-		kstacktop_i = kstacktop - KSTKSIZE - KSTKKGAP;
+		kstacktop_i = kstacktop_i - KSTKSIZE - KSTKGAP;
 	}
 }
 
@@ -395,7 +395,7 @@ struct PageInfo *
 page_alloc(int alloc_flags) {
 	spin_lock(&list_lock);
 	if(!page_free_list){
-		spin_unlock(&page_free_list_lock);
+		spin_unlock(&list_lock);
 		return 0;
 	}
 	struct PageInfo *pg = page_free_list;
@@ -420,10 +420,11 @@ page_free(struct PageInfo *pp) {
 	// Hint: You may want to panic if pp->pp_ref is nonzero or
 	// pp->pp_link is not NULL.
 
+	spin_lock(&list_lock);
+	
 	if(pp->pp_ref) panic("pp->pp_ref is nonzero!");
 	if(pp->pp_link) panic("pp->pp_link is not NULL!");
 
-	spin_lock(&list_lock);
 	pp->pp_link = page_free_list;
 	page_free_list = pp;
 	num_free_pages++;
@@ -436,7 +437,7 @@ page_free(struct PageInfo *pp) {
 //
 void
 page_decref(struct PageInfo* pp) {
-	i0f (--pp->pp_ref == 0)
+	if(--pp->pp_ref == 0)
 		page_free(pp);
 }
 
@@ -665,8 +666,8 @@ mmio_map_region(physaddr_t pa, size_t size)
 		pa,
 		PTE_P|PTE_W|PTE_PCD|PTE_PWT);
 	
-	intptr_t *ret = base;
-	base += ROUNDIP(size,PGSIZE);
+	intptr_t *ret = (void *)base;
+	base += ROUNDUP(size,PGSIZE);
 	return ret;
 }
 
@@ -702,8 +703,6 @@ setupkvm() {
 	
 	extern volatile uint32_t *lapic;
 	extern physaddr_t lapicaddr;
-	uint32_t kstacktop_i = KSTACKTOP;
-	int i;
 	pde_t *pgdir = page2kva(pg);
 	
 	boot_map_region(
@@ -729,20 +728,21 @@ setupkvm() {
 	
 	boot_map_region(
 		pgdir,
-		lapic,
+		(uintptr_t)lapic,
 		ROUNDUP(4096,PGSIZE),
 		lapicaddr,
-		PTE_P | PTE_W | PTE_PCD | PTE_PWT);
+		PTE_P|PTE_W|PTE_PCD|PTE_PWT);
 	
+	uint32_t kstacktop_i = KSTACKTOP;
+	int i;
 	for(i=0;i<NCPU;i++){
 		boot_map_region(
 			pgdir,
 			kstacktop_i-KSTKSIZE,
 			ROUNDUP(KSTKSIZE, PGSIZE),
 			PADDR(percpu_kstacks[i]),
-			PTE_P|PTE_W);
-		
-		kstacktop_i = kstacktop - KSTKSIZE;
+			PTE_P|PTE_W);	
+		kstacktop_i = kstacktop_i - KSTKSIZE;
 	}
 	
 	return pgdir;
@@ -1127,7 +1127,6 @@ check_page(void) {
 
 	// give free list back
 	page_free_list = fl;
-
 	// free the pages we took
 	page_free(pp0);
 	page_free(pp1);

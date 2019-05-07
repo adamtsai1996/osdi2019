@@ -27,24 +27,24 @@ enum {
 
 /* -------------- Prototypes --------------  */
 
-void              mem_init                (void);
-void              page_init               (void);
-void	            page_free               (struct PageInfo *pp);
-int	              page_insert             (pde_t *pgdir, struct PageInfo *pp, void *va, int perm);
-void	            page_remove             (pde_t *pgdir, void *va);
-void	            ptable_remove           (pde_t *pgdir);
-void	            pgdir_remove            (pde_t *pgdir);
-void	            page_decref             (struct PageInfo *pp);
-struct PageInfo   *page_alloc             (int alloc_flags);
-struct PageInfo   *page_lookup            (pde_t *pgdir, void *va, pte_t **pte_store);
-pde_t             *setupkvm               (void);
-void              setupvm                 (pde_t *pgdir, uint32_t start, uint32_t size);
-pte_t             *pgdir_walk             (pde_t *pgdir, const void *va, int create);
-void	            tlb_invalidate          (pde_t *pgdir, void *va);
-void              mem_init                (void);
-
-int32_t           sys_get_num_free_page   (void);
-int32_t           sys_get_num_used_page   (void);
+void				mem_init		(void);
+void				page_init		(void);
+void				page_free		(struct PageInfo *pp);
+int					page_insert		(pde_t *pgdir, struct PageInfo *pp, void *va, int perm);
+void				page_remove		(pde_t *pgdir, void *va);
+void				ptable_remove	(pde_t *pgdir);
+void				pgdir_remove	(pde_t *pgdir);
+void				page_decref		(struct PageInfo *pp);
+struct PageInfo*	page_alloc		(int alloc_flags);
+struct PageInfo*	page_lookup		(pde_t *pgdir, void *va, pte_t **pte_store);
+pde_t*				setupkvm		(void);
+void				setupvm			(pde_t *pgdir, uint32_t start, uint32_t size);
+pte_t*				pgdir_walk		(pde_t *pgdir, const void *va, int create);
+void				tlb_invalidate	(pde_t *pgdir, void *va);
+void				mem_init		(void);
+void*				mmio_map_region	(physaddr_t pa, size_t size);
+int32_t	sys_get_num_free_page(void);
+int32_t	sys_get_num_used_page(void);
 
 
 /* -------------- Inline Functions --------------  */

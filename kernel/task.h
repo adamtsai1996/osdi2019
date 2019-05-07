@@ -3,8 +3,8 @@
 
 #include <inc/trap.h>
 #include <kernel/mem.h>
-#define NR_TASKS	10
-#define TIME_QUANT	100
+#define NR_TASKS	32
+#define TIME_QUANT	10
 
 typedef enum
 {

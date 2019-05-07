@@ -57,7 +57,7 @@ lapic_init(void) {
 
 	// lapicaddr is the physical address of the LAPIC's 4K MMIO
 	// region.  Map it in to virtual memory so we can access it.
-	if(!lapic) lapic = mmio_map_region(lapicaddr, 4096);
+	if(!lapic) lapic = (uint32_t *)mmio_map_region(lapicaddr, 4096);
 
 	// Enable local APIC; set spurious interrupt vector.
 	lapicw(SVR, ENABLE | (IRQ_OFFSET + IRQ_SPURIOUS));
@@ -116,8 +116,7 @@ cpunum(void) {
 
 // Acknowledge interrupt.
 void
-lapic_eoi(void)
-{
+lapic_eoi(void) {
 	if (lapic)
 		lapicw(EOI, 0);
 }
@@ -168,9 +167,7 @@ lapic_startap(uint8_t apicid, uint32_t addr) {
 }
 
 void
-lapic_ipi(int vector)
-{
+lapic_ipi(int vector) {
 	lapicw(ICRLO, OTHERS | FIXED | vector);
-	while (lapic[ICRLO] & DELIVS)
-		;
+	while (lapic[ICRLO] & DELIVS);
 }

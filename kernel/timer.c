@@ -10,22 +10,14 @@
 
 static unsigned long jiffies = 0;
 
-void set_timer(int hz)
-{
-	int divisor = 1193180 / hz;       /* Calculate our divisor */
+void set_timer(int hz) {
+	int divisor = 1193180 / hz;   /* Calculate our divisor */
 	outb(0x43, 0x36);             /* Set our command byte 0x36 */
 	outb(0x40, divisor & 0xFF);   /* Set low byte of divisor */
 	outb(0x40, divisor >> 8);     /* Set high byte of divisor */
 }
 
-/* It is timer interrupt handler */
-//
-// TODO: Lab6
-// Modify your timer_handler to support Multi processor
-// Don't forget to acknowledge the interrupt using lapic_eoi()
-//
-void timer_handler(struct Trapframe *tf)
-{
+void timer_handler(struct Trapframe *tf) {
 	extern void sched_yield();
 	int i;
 
@@ -33,55 +25,39 @@ void timer_handler(struct Trapframe *tf)
 
 	extern Task tasks[];
 
-	extern Task *cur_task;
-
-	for(i=0;i<NR_TASKS;i++)
-	{
-		if(tasks[i].state == TASK_SLEEP)
-		{
-			tasks[i].remind_ticks--;
-			if(tasks[i].remind_ticks<=0)
-				tasks[i].state = TASK_RUNNABLE;
+	lapic_eoi();
+	for( i=0; i<thiscpu->cpu_rq.nr; i++) {
+		Task *task = &tasks[thiscpu->cpu_rq.runq[i]];
+		if( task->state==TASK_SLEEP ) {
+			task->remind_ticks--;
+			if( task->remind_ticks<=0 )
+				task->state = TASK_RUNNABLE;
 		}
 	}
 
-	if (cur_task != NULL)
-	{
-		/* TODO: Lab 5
-		* 1. Maintain the status of slept tasks
-		* 
-		* 2. Change the state of the task if needed
-		*
-		* 3. Maintain the time quantum of the current task
-		*
-		* 4. sched_yield() if the time is up for current task
-		*
-		*/
-		if( cur_task->state==TASK_RUNNING )
-		{
-			cur_task->remind_ticks--;
-			if(cur_task->remind_ticks<=0){
-				cur_task->state = TASK_RUNNABLE;
+	if ( thiscpu->cpu_task!=NULL ) {
+		if( thiscpu->cpu_task->state==TASK_RUNNING ) {
+			thiscpu->cpu_task->remind_ticks--;
+			if( thiscpu->cpu_task->remind_ticks<=0 ) {
+				thiscpu->cpu_task->state = TASK_RUNNABLE;
 				sched_yield();
 			}
 		}
 	}
 }
 
-unsigned long sys_get_ticks()
-{
-  return jiffies;
+unsigned long sys_get_ticks() {
+	return jiffies;
 }
 
-void timer_init()
-{
-  set_timer(TIME_HZ);
+void timer_init() {
+	set_timer(TIME_HZ);
 
-  /* Enable interrupt */
-  irq_setmask_8259A(irq_mask_8259A & ~(1<<IRQ_TIMER));
+	/* Enable interrupt */
+	irq_setmask_8259A(irq_mask_8259A & ~(1<<IRQ_TIMER));
 
-  /* Register trap handler */
-  extern void TIM_ISR();
-  register_handler( IRQ_OFFSET + IRQ_TIMER, &timer_handler, &TIM_ISR, 0, 0);
+	/* Register trap handler */
+	extern void TIM_ISR();
+	register_handler( IRQ_OFFSET + IRQ_TIMER, &timer_handler, &TIM_ISR, 0, 0);
 }
 
