@@ -40,36 +40,22 @@
 //    (cpu can only schedule tasks which in its runqueue!!) 
 //    (do not schedule idle task if there are still another process can run)	
 //
-void sched_yield(void)
-{
+void sched_yield(void) {
+	int i;
 	extern Task tasks[];
-
-	/* Step1 */
-	extern Task *cur_task;
-
-	/* Step2 */
-	int next=cur_task->task_id;
-	int i = (cur_task->task_id+1)%NR_TASKS;
-	for( ; i!=cur_task->task_id ; i=(i+1)%NR_TASKS)
-		if(tasks[i].state == TASK_RUNNABLE){
-			next = i;
-			break;
+	Runqueue *rq =  &thiscpu->cpu_rq;
+	int index = thiscpu->cpu_task->rq_index;
+	for( i=0; i<rq->nri; i++){
+		index = (index+1)%(rq->nr);
+		int task_id = rq->runq[index];
+		if(tasks[task_id].state == TASK_RUNNABLE){
+			thiscpu->cpu_task = &tasks[task_id];
+			thiscpu->cpu_task->state = TASK_RUNNING;
+			thiscpu->cpu_task->remind_ticks = TIME_QUANT;
+			thiscpu->cpu_task->rq_index = index;
+			thiscpu->cpu_rq.cur = index;
+			lcr3(PADDR(thiscpu->cpu_task->pgdir));
+			ctx_switch(thiscpu->cpu_task);
 		}
-	
-	/* Step3 */
-	if( next==cur_task->task_id ){
-		if(cur_task->state==TASK_RUNNABLE){
-			cur_task->state=TASK_RUNNING;
-			tasks[i].remind_ticks = TIME_QUANT;
-		}
-		ctx_switch(cur_task);
 	}
-	
-	cur_task = &tasks[next];
-	cur_task->state = TASK_RUNNING;
-	cur_task->remind_ticks = TIME_QUANT;
-	lcr3(PADDR(cur_task->pgdir));
-
-	/* Step4 */
-	ctx_switch(cur_task);
 }
