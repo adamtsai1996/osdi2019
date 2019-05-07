@@ -21,20 +21,20 @@ void kernel_main(void)
 	extern void task_job();
 
 	init_video();
-  	mem_init();
+	mem_init();
 	mp_init();
 	lapic_init();
-  	task_init();
+	task_init();
 	trap_init();
 	pic_init();
 	kbd_init();
-  	timer_init();
-  	syscall_init();
+	timer_init();
+	syscall_init();
 	boot_aps();
 
-    printk("Kernel code base start=0x%08x to = 0x%08x\n", stext, etext);
-    printk("Readonly data start=0x%08x to = 0x%08x\n", etext, rdata_end);
-    printk("Kernel data base start=0x%08x to = 0x%08x\n", data_start, end);
+	printk("Kernel code base start=0x%08x to = 0x%08x\n", stext, etext);
+	printk("Readonly data start=0x%08x to = 0x%08x\n", etext, rdata_end);
+	printk("Kernel data base start=0x%08x to = 0x%08x\n", data_start, end);
 
 
 	/* Enable interrupt */
@@ -51,10 +51,13 @@ void kernel_main(void)
 		"pushl %2\n\t" \
 		"pushl %3\n\t" \
 		"iret\n" \
-		:: "m" (cur_task->tf.tf_esp), "i" (GD_UD | 0x03), "i" (GD_UT | 0x03), "m" (cur_task->tf.tf_eip)
-		:"ax"
-	);
-	/*	iret :
+		::	"m" (cur_task->tf.tf_esp),
+			"i" (GD_UD | 0x03),
+			"i" (GD_UT | 0x03),
+			"m" (cur_task->tf.tf_eip)
+		:	"ax");
+	
+	/* iret :
 	 *		pop eip
 	 *		pop cs
 	 *		pop	EFLAGS
@@ -86,25 +89,40 @@ boot_aps(void)
 	//      -- Start the CPU at AP entry code (use lapic_startap()
 	//         in kernel/lapic.c)
 	//      -- Wait for the CPU to finish some basic setup in mp_main(
-	// 
+	//
 	// Your code here:
+	int i;
+	int id = cpunum();
+	int kstacktop_i = KSTACKTOP;
+	extern uint32_t mpentry_start, mpentry_end;
+	
+	memmove(
+		KADDR(MPENTRY_PADDR),
+		mpentry_start,
+		mpentry_end-mpentry_start);
+	
+	for( i=0; i<ncpu; i++) {
+		if(id==i) continue;
+		mpentry_kstack = percpu_kstacks[i]+KSTKSIZE;
+		lapic_startap(id, MPENTRY_PADDR);
+		while( cpus[i].cpu_status!=CPU_STARTED );
+	}
 }
 
 // Setup code for APs
 void
-mp_main(void)
-{
-	/* 
+mp_main(void) {
+	/*
 	 * Here is the per-CPU state you should be aware of
 	 *
-	 * 1. Per-CPU kernel stack 
-	 *    
+	 * 1. Per-CPU kernel stack
+	 *
 	 *    Because multiple CPUs can trap into the kernel simultaneously,
 	 *    we need a separate kernel stack for each processor to prevent
 	 *    them from interfering with each other's execution. The array
 	 *    percpu_kstacks[NCPU][KSTKSIZE] reserves space for NCPU's worth
 	 *    of kernel stacks.
-	 *    
+	 *
 	 *    In previous Lab, you mapped the physical memory that bootstack
 	 *    refers to as the BSP's kernel stack just below KSTACKTOP.
 	 *    Similarly, in this lab, you will map each CPU's kernel stack 
@@ -122,7 +140,7 @@ mp_main(void)
 	 *    tss variable defined in kern/task.c will no longer be useful.
 	 *
 	 * 3. Per-CPU current task pointer
-	 *   
+	 *
 	 *    Since each CPU can run different user process simultaneously,
 	 *    we redefined the symbol cur_task to refer to cpus[cpunum()].
 	 *    cpu_task (or thiscpu->cpu_task), which points to the task
@@ -130,7 +148,7 @@ mp_main(void)
 	 *    code is running) 
 	 *
 	 * 4. Per-CPU system registers
-	 *    
+	 *
 	 *    All registers, including system registers, are private to a CPU.
 	 *    Therefore, instructions that initialize these registers, such as
 	 *    lcr3(), ltr(), lgdt(), lidt(), etc., must be executed once on each
@@ -153,7 +171,7 @@ mp_main(void)
 	 * 5. init per-CPU Runqueue( using task_init_percpu() in kernel/task.c )
 	 *
 	 * 6. init per-CPU system registers
-	 *       
+	 *
 	 */
 	
 	// We are in high EIP now, safe to switch to kern_pgdir 
@@ -161,14 +179,15 @@ mp_main(void)
 	printk("SMP: CPU %d starting\n", cpunum());
 	
 	// Your code here:
-	
+	lapic_init();
+	task_init_percpu();
+	lidt(&idt_pd);
 
 	// TODO: Lab6
 	// Now that we have finished some basic setup, it's time to tell
 	// boot_aps() we're up ( using xchg )
 	// Your code here:
-
-
+	xchg(&thiscpu->cpu_status, CPU_STARTED);
 
 	/* Enable interrupt */
 	__asm __volatile("sti");
@@ -185,5 +204,4 @@ mp_main(void)
 			"iret\n" \
 			:: "m" (thiscpu->cpu_task->tf.tf_esp), "i" (GD_UD | 0x03), "i" (GD_UT | 0x03), "m" (thiscpu->cpu_task->tf.tf_eip)
 			:"ax");
-
 }

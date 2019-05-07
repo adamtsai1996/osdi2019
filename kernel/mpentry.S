@@ -86,7 +86,7 @@ spin:
 gdt:
 	SEG_NULL				# null seg
 	SEG(STA_X|STA_R, 0x0, 0xffffffff)	# code seg
-	SEG(STA_W, 0x0, 0xffffffff)		# data seg
+	SEG(STA_W, 0x0, 0xffffffff)			# data seg
 
 gdtdesc:
 	.word   0x17				# sizeof(gdt) - 1
