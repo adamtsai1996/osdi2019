@@ -4,6 +4,7 @@
 #include <inc/assert.h>
 #include <inc/mmu.h>
 #include <inc/x86.h>
+#include <kernel/cpu.h>
 
 /* For debugging, so print_trapframe can distinguish between printing
  * a saved trapframe and printing the current trapframe and print some
@@ -129,6 +130,30 @@ env_pop_tf(struct Trapframe *tf)
 		"\tiret"
 		: : "g" (tf) : "memory");
 	panic("iret failed");  /* mostly to placate the compiler */
+
+	/*	What does the INT do ?
+	 *	(these will be similar to all interrupts and faults, through there are slight differences)
+	 *
+	 *		1.	decide the vector number, in this case syscall is the 0x30
+	 *	
+	 *		2.	fetch the interrupt descriptor for vector 0x30 frome the IDT.
+	 *			CPU finds it bv taking the 0x30'th 8-byte entry starting at
+	 *			the physical address that the IDTR CPU register point to.
+	 *		
+	 *		3.	check that CPL<=DPL in the descriptor.
+	 *			(but only if INT instruction)
+	 *
+	 *		4.	save ESP and SS in a CPU-internal register.
+	 *			(but only if target segment selector's PL<CPL)
+	 *
+	 *		5.	load SS and ESP from TSS
+	 *
+	 *		6.	push user SS, ESP, EFLAGS, CS, EIP
+	 *
+	 *		7.	clear some EFLAGS bits
+	 *
+	 *		8.	set CS and EIP from IDT descriptor's segment selector and offset
+	 */
 }
 
 static void
@@ -151,7 +176,7 @@ trap_dispatch(struct Trapframe *tf)
 		if ((tf->tf_cs & 3) == 3)
 		{
 			// Trapped from user mode.
-			extern Task *cur_task;
+			//extern Task *cur_task;
 
 			// Disable interrupt first
 			// Think: Why we disable interrupt here?
@@ -160,8 +185,8 @@ trap_dispatch(struct Trapframe *tf)
 			// Copy trap frame (which is currently on the stack)
 			// into 'cur_task->tf', so that running the environment
 			// will restart at the trap point.
-			cur_task->tf = *tf;
-			tf = &(cur_task->tf);
+			thiscpu->cpu_task->tf = *tf;
+			tf = &(thiscpu->cpu_task->tf);
 				
 		}
 		// Do ISR
@@ -215,7 +240,7 @@ void trap_init()
 
   /* Using custom trap handler */
 	extern void PGFLT();
-  register_handler(T_PGFLT, page_fault_handler, PGFLT, 1, 0);
+	register_handler(T_PGFLT, page_fault_handler, PGFLT, 1, 0);
 
 	lidt(&idt_pd);
 }

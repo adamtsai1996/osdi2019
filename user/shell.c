@@ -138,7 +138,7 @@ void task_job()
 	for (i = 0; i < 10; i++)
 	{
 		cprintf("Pid=%d, Cid=%d, now=%d\n", pid, cid, i);
-		sleep(100);
+		sleep(50);
 	}
 }
 
@@ -177,7 +177,7 @@ int spinlocktest(int argc, char **argv)
     fork();
     fork();
     fork();
-    sleep(500);
+    sleep(100);
     cprintf("Pid=%d, Cid=%d\n", getpid(), getcid());
     /* task recycle */
     kill_self();
@@ -532,15 +532,15 @@ int fs_speed_test(int argc, char **argv)
 
 void shell()
 {
-  char *buf;
-  hist_head = 0;
-  hist_tail = 0;
-  hist_curr = 0;
+	cprintf("Welcome to the OSDI course!\n");
+	cprintf("Type 'help' for a list of commands.\n");
 
-  cprintf("Welcome to the OSDI course!\n");
-  cprintf("Type 'help' for a list of commands.\n");
+	char *buf;
+	hist_head = 0;
+	hist_tail = 0;
+	hist_curr = 0;
 
-  while(1)
+    while(1)
   {
     buf = readline("OSDI> ");
     if (buf != NULL)

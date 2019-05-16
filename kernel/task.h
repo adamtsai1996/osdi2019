@@ -3,8 +3,8 @@
 
 #include <inc/trap.h>
 #include <kernel/mem.h>
-#define NR_TASKS	10
-#define TIME_QUANT	100
+#define NR_TASKS	32
+#define TIME_QUANT	10
 
 typedef enum
 {
@@ -22,10 +22,12 @@ typedef struct
 {
 	int task_id;
 	int parent_id;
+	int cpu_id;
+	int rq_index;
 	struct Trapframe tf; //Saved registers
 	int32_t remind_ticks;
 	TaskState state;	//Task state
-  pde_t *pgdir;  //Per process Page Directory
+	pde_t *pgdir;  //Per process Page Directory
 	
 } Task;
 
@@ -39,9 +41,10 @@ typedef struct
 //
 // 2. a list indicate the tasks in the runqueue
 //
-typedef struct
-{
-
+typedef struct {
+	int cur;
+	int nr;
+	int runq[NR_TASKS];
 } Runqueue;
 
 

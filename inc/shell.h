@@ -16,5 +16,5 @@ int mon_help(int argc, char **argv);
 int mon_kerninfo(int argc, char **argv);
 int print_tick(int argc, char **argv);
 void shell_hist_init();
-
+int chg_color(int argc, char **argv);
 #endif
