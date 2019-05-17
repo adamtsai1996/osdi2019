@@ -3,3 +3,4 @@ tags
 *.o
 *.asm
 kernel/system
+lab7.img
