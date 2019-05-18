@@ -16,7 +16,6 @@ unsigned static char ide_irq_invoked = 0;
 unsigned static char ide_status = 0;
 
 void ide_initialize(unsigned int BAR0, unsigned int BAR1, unsigned int BAR2, unsigned int BAR3, unsigned int BAR4);
-unsigned char ide_read(unsigned char channel, unsigned char reg);
 void ide_write(unsigned char channel, unsigned char reg, unsigned char data);
 void ide_read_buffer(unsigned char channel, unsigned char reg, unsigned int buffer, unsigned int quads);
 unsigned char ide_print_error(unsigned int drive, unsigned char err);
@@ -38,7 +37,8 @@ int disk_init()
 void disk_test()
 {
 	unsigned char buf[SECTOR_SIZE];
-	int i, j, ret;
+	int i, j;
+	//int ret;
 
 	for (i = 0; i < SECTOR_SIZE; i++)
 		if (i % 2)
@@ -71,7 +71,7 @@ void disk_test()
 					printk("Read error at sector %d address %d, read=%d!\n", i, j, buf[j]);
 				assert(buf[j] == 0xAA);
 			}
-		0}
+		}
 	}
 
 	printk("Disk test pass!\n");
@@ -83,7 +83,7 @@ int ide_read_sectors(
 		unsigned int lba,
 		unsigned int edi)
 {
-	int retVal = 0;
+	//int retVal = 0;
 	// 1: Check if the drive presents:
 	// ==================================
 	if (drive > 3 || ide_devices[drive].Reserved == 0) ide_status = 0x1;      // Drive Not Found!
@@ -96,7 +96,7 @@ int ide_read_sectors(
 	// 3: Read in PIO Mode through Polling & IRQs:
 	// ============================================
 	else {
-		unsigned char err;
+		unsigned char err=0;
 		if (ide_devices[drive].Type == IDE_ATA)
 		{
 			err = ide_ata_access(ATA_READ, drive, lba, numsects, GD_KD, edi);
@@ -117,7 +117,7 @@ int ide_write_sectors(
 		unsigned char numsects,
 		unsigned int lba,
 		unsigned int edi) {
-	int retVal = 0;
+	//int retVal = 0;
 	// 1: Check if the drive presents:
 	// ==================================
 	if (drive > 3 || ide_devices[drive].Reserved == 0)
@@ -129,7 +129,7 @@ int ide_write_sectors(
 	// 3: Read in PIO Mode through Polling & IRQs:
 	// ============================================
 	else {
-		unsigned char err;
+		unsigned char err=0;
 		if (ide_devices[drive].Type == IDE_ATA)
 			err = ide_ata_access(ATA_WRITE, drive, lba, numsects, GD_KD, edi);
 		else if (ide_devices[drive].Type == IDE_ATAPI)
@@ -437,7 +437,7 @@ unsigned char ide_polling(unsigned char channel, unsigned int advanced_check)
 
 }
 unsigned char ide_read(unsigned char channel, unsigned char reg) {
-	unsigned char result;
+	unsigned char result=0;
 	if (reg > 0x07 && reg < 0x0C)
 		ide_write(channel, ATA_REG_CONTROL, 0x80 | channels[channel].nIEN);
 	if (reg < 0x08)
@@ -477,13 +477,13 @@ void ide_read_buffer(unsigned char channel, unsigned char reg, unsigned int buff
 		ide_write(channel, ATA_REG_CONTROL, 0x80 | channels[channel].nIEN);
 	//asm("pushw %es; movw %ds, %ax; movw %ax, %es");
 	if (reg < 0x08)
-		insl(channels[channel].base  + reg - 0x00, buffer, quads);
+		insl(channels[channel].base  + reg - 0x00, (void*)buffer, quads);
 	else if (reg < 0x0C)
-		insl(channels[channel].base  + reg - 0x06, buffer, quads);
+		insl(channels[channel].base  + reg - 0x06, (void*)buffer, quads);
 	else if (reg < 0x0E)
-		insl(channels[channel].ctrl  + reg - 0x0A, buffer, quads);
+		insl(channels[channel].ctrl  + reg - 0x0A, (void*)buffer, quads);
 	else if (reg < 0x16)
-		insl(channels[channel].bmide + reg - 0x0E, buffer, quads);
+		insl(channels[channel].bmide + reg - 0x0E, (void*)buffer, quads);
 	//asm("popw %es;");
 	if (reg > 0x07 && reg < 0x0C)
 		ide_write(channel, ATA_REG_CONTROL, channels[channel].nIEN);

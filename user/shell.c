@@ -391,50 +391,50 @@ int filetest5(int argc, char **argv)
 
 int fs_seek_test(int argc, char **argv)
 {
-    int i;
-    off_t offset;
-    int fd = -1;
-    int ret;
-    char buf[BUFSIZE] = {0};
+	int i;
+	off_t offset;
+	int fd = -1;
+	int ret;
+	char buf[BUFSIZE] = {0};
 
-    for (i = 0; i < BUFSIZE; i++)
-    {
-        buf[i] = i;
-    }
-    if ((fd = open("test2.txt", O_WRONLY | O_CREAT | O_TRUNC, 0)) >= 0)
-    {
-        ret = write(fd, buf, 10); // write test pattern
-        if (ret == 10)
-           cprintf("Write test pattern successed!\n");
-        close(fd);
-    }
+	for (i = 0; i < BUFSIZE; i++)
+	{
+		buf[i] = i;
+	}
+	if ((fd = open("test2.txt", O_WRONLY | O_CREAT | O_TRUNC, 0)) >= 0)
+	{
+		ret = write(fd, buf, 10); // write test pattern
+		if (ret == 10)
+			cprintf("Write test pattern successed!\n");
+		close(fd);
+	}
 
-    if ((fd = open("test2.txt", O_RDWR, 0)) >= 0)
-    {
-        offset = lseek(fd, 10, SEEK_END); //seek to file end + 10 bytes
-        cprintf("File offset =%d\n", offset);
-        ret = write(fd, &(buf[10]), 10);
-        offset = lseek(fd, 0, SEEK_SET); //seek to file begin
+	if ((fd = open("test2.txt", O_RDWR, 0)) >= 0)
+	{
+		offset = lseek(fd, 10, SEEK_END); //seek to file end + 10 bytes
+		cprintf("File offset =%d\n", offset);
+		ret = write(fd, &(buf[10]), 10);
+		offset = lseek(fd, 0, SEEK_SET); //seek to file begin
 
-        for (i = 0; i < BUFSIZE; i++)
-        {
-            buf[i] = 0;
-        }
-        ret = read(fd, buf, BUFSIZE);
+		for (i = 0; i < BUFSIZE; i++)
+		{
+			buf[i] = 0;
+		}
+		ret = read(fd, buf, BUFSIZE);
 
-        if (ret >= 0)
-        {
-            cprintf("Read total %d bytes\n", ret);
-            for (i = 0; i < ret; i++)
-            {
-                cprintf("%d ", buf[i]);
-            }
-            cprintf("\n");
-        }
-        close(fd);
-    }
-    else
-        cprintf("Open failed!\n");
+		if (ret >= 0)
+		{
+			cprintf("Read total %d bytes\n", ret);
+			for (i = 0; i < ret; i++)
+			{
+				cprintf("%d ", buf[i]);
+			}
+			cprintf("\n");
+		}
+		close(fd);
+	}
+	else cprintf("Open failed!\n");
+	return 0;
 }
 #define fsrw_fn                   "/test.dat"
 #define fsrw_data_len             180              /* Less than 256 */
@@ -442,7 +442,7 @@ int fs_seek_test(int argc, char **argv)
 int fs_speed_test(int argc, char **argv)
 {
     int fd;
-    int stop_flag = 0;
+//    int stop_flag = 0;
     int index,length;
     uint32_t round;
     uint32_t tick_start,tick_end,read_speed,write_speed;
@@ -461,7 +461,7 @@ int fs_speed_test(int argc, char **argv)
         if (fd < 0)
         {
             cprintf("fsrw open file for write failed\n");
-            return;
+            return 0;
         }
 
         /* plan write data */
@@ -479,7 +479,7 @@ int fs_speed_test(int argc, char **argv)
             {
                 cprintf("fsrw write data failed\n");
                 close(fd);
-                return;
+                return 0;
             }
         }
         tick_end = get_ticks();
@@ -493,7 +493,7 @@ int fs_speed_test(int argc, char **argv)
         if (fd < 0)
         {
             cprintf("fsrw open file for read failed\n");
-            return;
+            return 0;
         }
 
         /* verify data */
@@ -507,7 +507,7 @@ int fs_speed_test(int argc, char **argv)
             {
                 cprintf("fsrw read file failed\r\n");
                 close(fd);
-                return;
+                return 0;
             }
             for(i=0; i<fsrw_data_len; i++)
             {
@@ -515,7 +515,7 @@ int fs_speed_test(int argc, char **argv)
                 {
                     cprintf("fsrw data error!\r\n");
                     close(fd);
-                    return;
+                    return 0;
                 }
             }
         }
@@ -528,6 +528,7 @@ int fs_speed_test(int argc, char **argv)
         /* close file */
         close(fd);
     }
+	return 0;
 }
 
 void shell()

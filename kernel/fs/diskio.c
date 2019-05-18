@@ -3,6 +3,7 @@
 #include <fat/diskio.h>
 #include <fat/ff.h>
 #include <kernel/drv/disk.h>
+#include <kernel/timer.h>
 
 /*TODO: Lab7, low level file operator.
  *  You have to provide some device control interface for 
@@ -99,12 +100,12 @@ DSTATUS disk_status (BYTE pdrv)
   */
 DRESULT disk_read (BYTE pdrv, BYTE* buff, DWORD sector, UINT count)
 {
-	int err = 0;
+	//int err = 0;
 	int i = count;
 	BYTE *ptr = buff;
 	UINT cur_sector = sector;
 	/* TODO */
-	ide_read_sectors(DISK_ID,i,cur_sector,ptr)
+	ide_read_sectors(DISK_ID,i,cur_sector,(unsigned int)ptr);
 	return RES_OK;
 }
 
@@ -120,12 +121,12 @@ DRESULT disk_read (BYTE pdrv, BYTE* buff, DWORD sector, UINT count)
   */
 DRESULT disk_write (BYTE pdrv, const BYTE* buff, DWORD sector, UINT count)
 {
-	int err = 0;
+	//int err = 0;
 	int i = count;
-	BYTE *ptr = buff;
+	const BYTE *ptr = buff;
 	UINT cur_sector = sector;
 	/* TODO */
-	ide_write_sectors(DISK_ID,i,cur_sector,ptr)
+	ide_write_sectors(DISK_ID,i,cur_sector,(unsigned int)ptr);
 	return RES_OK;
 }
 
@@ -146,13 +147,13 @@ DRESULT disk_ioctl (BYTE pdrv, BYTE cmd, void* buff)
     /* TODO */    
 	switch(cmd){
 		case GET_SECTOR_COUNT:
-			*buff=ide_devices[DISK_ID].Size;
+			*retVal=ide_devices[DISK_ID].Size;
 			break;
 		case GET_SECTOR_SIZE:
-			*buff=512;
+			*retVal=512;
 			break;
 		case GET_BLOCK_SIZE:
-			*buff=512
+			*retVal=512;
 			break;
 		default:
 			break;
@@ -167,5 +168,5 @@ DRESULT disk_ioctl (BYTE pdrv, BYTE cmd, void* buff)
 DWORD get_fattime (void)
 {
     /* TODO */
-	return sus_get_ticks();
+	return sys_get_ticks();
 }

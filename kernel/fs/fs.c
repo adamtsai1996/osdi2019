@@ -24,7 +24,7 @@ struct fs_dev fat_fs = {
     .ops = &elmfat_ops,
     .data = &fat
 };
-    
+
 /*TODO: Lab7, VFS level file API.
  *  This is a virtualize layer. Please use the function pointer
  *  under struct fs_ops to call next level functions.
@@ -58,10 +58,108 @@ struct fs_dev fat_fs = {
  *        │     disk     │  simple ATA disk dirver
  *        └──────────────┘
  */
+
+int fr2status(int fret){
+	int ret = -1;
+	switch(-fret){
+		/* (0) Succeeded */
+		case FR_OK:
+			ret = STATUS_OK;
+			break;
+
+		/* (1) A hard error occurred in the low level disk I/O layer */
+		case FR_DISK_ERR:
+			break;
+
+		/* (2) Assertion failed */
+		case FR_INT_ERR:
+			break;
+
+		/* (3) The physical drive cannot work */
+		case FR_NOT_READY:
+			ret = STATUS_EIO;
+			break;
+
+		/* (4) Could not find the file */
+		case FR_NO_FILE:
+			break;
+
+		/* (5) Could not find the path */
+		case FR_NO_PATH:
+			break;
+
+		/* (6) The path name format is invalid */
+		case FR_INVALID_NAME:
+			ret = STATUS_ENOENT;
+			break;
+
+		/* (7) Access denied due to prohibited access or directory full */
+		case FR_DENIED:
+			break;
+
+		/* (8) Access denied due to prohibited access */
+		case FR_EXIST:
+			ret = STATUS_EEXIST;
+			break;
+
+		/* (9) The file/directory object is invalid */
+		case FR_INVALID_OBJECT:
+			ret = STATUS_ENXIO;
+			break;
+
+		/* (10) The physical drive is write protected */
+		case FR_WRITE_PROTECTED:
+			ret = STATUS_EROFS;
+			break;
+
+		/* (11) The logical drive number is invalid */
+		case FR_INVALID_DRIVE:
+			ret = STATUS_EBADF;
+			break;
+
+		/* (12) The volume has no work area */
+		case FR_NOT_ENABLED:
+			ret = STATUS_ENOSPC;
+			break;
+
+		/* (13) There is no valid FAT volume */
+		case FR_NO_FILESYSTEM:
+			ret = STATUS_ENODEV;
+			break;
+
+		/* (14) The f_mkfs() aborted due to any parameter error */
+		case FR_MKFS_ABORTED:
+			break;
+
+		/* (15) Could not get a grant to access the volume within defined period */
+		case FR_TIMEOUT:
+			break;
+
+		/* (16) The operation is rejected according to the file sharing policy */
+		case FR_LOCKED:
+			break;
+
+		/* (17) LFN working buffer could not be allocated */
+		case FR_NOT_ENOUGH_CORE:
+			break;
+
+		/* (18) Number of open files > _FS_LOCK */
+		case FR_TOO_MANY_OPEN_FILES:
+			ret = STATUS_EBUSY;
+			break;
+
+		/* (19) Given parameter is invalid */
+		case FR_INVALID_PARAMETER:
+			ret = STATUS_EINVAL;
+			break;
+	}
+	return ret;
+}
+
 int fs_init()
 {
     int res, i;
-    
+
     /* Initial fd_tables */
     for (i = 0; i < FS_FD_MAX; i++)
     {
@@ -73,7 +171,7 @@ int fs_init()
         fd_table[i].data = &file_objs[i];
         fd_table[i].fs = &fat_fs;
     }
-    
+
     /* Mount fat file system at "/" */
     /* Check need mkfs or not */
     if ((res = fs_mount("elmfat", "/", NULL)) != 0)
@@ -83,46 +181,65 @@ int fs_init()
         return res;
     }
     return -STATUS_EIO;
-       
 }
 
 /** Mount a file system by path 
 *  Note: You need compare the device_name with fat_fs.ops->dev_name and find the file system operator
 *        then call ops->mount().
 *
-*  @param data: If you have mutilple file system it can be use for pass the file system object pointer save in fat_fs->data. 
+*  @param data: If you have mutilple file system it can be use for pass the file system object pointer save in fat_fs->data
 */
 int fs_mount(const char* device_name, const char* path, const void* data)
 {
-    return -STATUS_EIO;
-} 
+	if(strcmp(device_name,fat_fs.ops->dev_name)) return -STATUS_EIO;
+	strcpy(fat_fs.path, path);
+	int ret = fat_fs.ops->mount(&fat_fs, data);
+	if( ret<0 ) return fr2status(ret);
+	return ret;
+}
 
 /* Note: Before call ops->open() you may copy the path and flags parameters into fd object structure */
 int file_open(struct fs_fd* fd, const char *path, int flags)
 {
-
+	fd->flags = flags;
+	strcpy(fd->path,path);
+	int ret = fat_fs.ops->open(fd);
+	if( ret<0 ) return fr2status(ret);
+	return ret;
 }
 
 int file_read(struct fs_fd* fd, void *buf, size_t len)
 {
-
+	int ret = fat_fs.ops->read(fd,buf,len);
+	if( ret<0 ) return fr2status(ret);
+	return ret;
 }
 
 int file_write(struct fs_fd* fd, const void *buf, size_t len)
 {
-
+	int ret = fat_fs.ops->write(fd,buf,len);
+	if( ret<0 ) return fr2status(ret);
+	return ret;
 }
 
 int file_close(struct fs_fd* fd)
 {
-
+	int ret = fat_fs.ops->close(fd);
+	if( ret<0 ) return fr2status(ret);
+	return ret;
 }
+
 int file_lseek(struct fs_fd* fd, off_t offset)
 {
-
+	int ret = fat_fs.ops->lseek(fd, offset);
+	if( ret<0 ) return fr2status(ret);
+	return ret;
 }
 int file_unlink(const char *path)
 {
+	int ret = fat_fs.ops->unlink(0,path);
+	if( ret<0 ) return fr2status(ret);
+	return ret;
 }
 
 
@@ -194,6 +311,6 @@ void fd_put(struct fs_fd* fd)
 		//memset(fd, 0, sizeof(struct fs_fd));
 		memset(fd->data, 0, sizeof(FIL));
 	}
-};
+}
 
 
