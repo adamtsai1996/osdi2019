@@ -71,14 +71,18 @@ void disk_test()
 					printk("Read error at sector %d address %d, read=%d!\n", i, j, buf[j]);
 				assert(buf[j] == 0xAA);
 			}
-		}
+		0}
 	}
 
 	printk("Disk test pass!\n");
 }
 
-int ide_read_sectors(unsigned char drive, unsigned char numsects, unsigned int lba,
-		unsigned int edi) {
+int ide_read_sectors(
+		unsigned char drive,
+		unsigned char numsects,
+		unsigned int lba,
+		unsigned int edi)
+{
 	int retVal = 0;
 	// 1: Check if the drive presents:
 	// ==================================
@@ -108,7 +112,10 @@ int ide_read_sectors(unsigned char drive, unsigned char numsects, unsigned int l
 	return -ide_status;
 }
 
-int ide_write_sectors(unsigned char drive, unsigned char numsects, unsigned int lba,
+int ide_write_sectors(
+		unsigned char drive,
+		unsigned char numsects,
+		unsigned int lba,
 		unsigned int edi) {
 	int retVal = 0;
 	// 1: Check if the drive presents:

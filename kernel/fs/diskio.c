@@ -62,10 +62,12 @@
   */
 DSTATUS disk_initialize (BYTE pdrv)
 {
-  /* TODO */
-  /* Note: You can create a function under disk.c  
-   *       to help you get the disk status.
-   */
+	/* TODO */
+	/* Note: You can create a function under disk.c  
+	 *       to help you get the disk status.
+	 */
+	disk_init();
+	return 0;
 }
 
 /**
@@ -78,10 +80,11 @@ DSTATUS disk_initialize (BYTE pdrv)
   */
 DSTATUS disk_status (BYTE pdrv)
 {
-/* TODO */
-/* Note: You can create a function under disk.c  
- *       to help you get the disk status.
- */
+	/* TODO */
+	/* Note: You can create a function under disk.c  
+	 *       to help you get the disk status.
+	 */
+	return ide_read(DISK_ID, ATA_REG_STATUS);
 }
 
 /**
@@ -96,11 +99,13 @@ DSTATUS disk_status (BYTE pdrv)
   */
 DRESULT disk_read (BYTE pdrv, BYTE* buff, DWORD sector, UINT count)
 {
-    int err = 0;
-    int i = count;
-    BYTE *ptr = buff;
-    UINT cur_sector = sector;
-    /* TODO */
+	int err = 0;
+	int i = count;
+	BYTE *ptr = buff;
+	UINT cur_sector = sector;
+	/* TODO */
+	ide_read_sectors(DISK_ID,i,cur_sector,ptr)
+	return RES_OK;
 }
 
 /**
@@ -115,12 +120,13 @@ DRESULT disk_read (BYTE pdrv, BYTE* buff, DWORD sector, UINT count)
   */
 DRESULT disk_write (BYTE pdrv, const BYTE* buff, DWORD sector, UINT count)
 {
-    int err = 0;
-    int i = count;
-    BYTE *ptr = buff;
-    UINT cur_sector = sector;
-    /* TODO */    
-
+	int err = 0;
+	int i = count;
+	BYTE *ptr = buff;
+	UINT cur_sector = sector;
+	/* TODO */
+	ide_write_sectors(DISK_ID,i,cur_sector,ptr)
+	return RES_OK;
 }
 
 /**
@@ -138,6 +144,20 @@ DRESULT disk_ioctl (BYTE pdrv, BYTE cmd, void* buff)
 {
     uint32_t *retVal = (uint32_t *)buff;
     /* TODO */    
+	switch(cmd){
+		case GET_SECTOR_COUNT:
+			*buff=ide_devices[DISK_ID].Size;
+			break;
+		case GET_SECTOR_SIZE:
+			*buff=512;
+			break;
+		case GET_BLOCK_SIZE:
+			*buff=512
+			break;
+		default:
+			break;
+	}
+	return RES_OK;
 }
 
 /**
@@ -147,4 +167,5 @@ DRESULT disk_ioctl (BYTE pdrv, BYTE cmd, void* buff)
 DWORD get_fattime (void)
 {
     /* TODO */
+	return sus_get_ticks();
 }
