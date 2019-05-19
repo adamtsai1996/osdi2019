@@ -56,22 +56,25 @@ int sys_open(const char *file, int flags, int mode)
 	//We dont care the mode.
 	/* TODO */
 	int fd = fd_new();
-	if(fd==-1) return -STATUS_ENOSPC;
+	if(fd==-1) return -1;
 	int retVal = file_open(&fd_table[fd],file,flags);
 	if( retVal<0 ) {
 		sys_close(fd);
 		return retVal;
 	}
 	fd_table[fd].size = f_size((FIL*)fd_table[fd].data);
+	fd_table[fd].pos = 0;
 	return fd;
 }
 
 int sys_close(int fd)
 {
 	/* TODO */
-	if ( fd<0 || fd>=FS_FD_MAX )
-		return -STATUS_EBADF;
 	int ret = 0;
+
+	if ( fd<0 || fd>=FS_FD_MAX )
+		return -STATUS_EINVAL;
+
 	if(fd_table[fd].ref_count==1){
 		fd_table[fd].size=0;
 		fd_table[fd].pos=0;
@@ -83,52 +86,78 @@ int sys_close(int fd)
 int sys_read(int fd, void *buf, size_t len)
 {
 	/* TODO */
-	if( fd<0 || fd>=FS_FD_MAX )
-		return -STATUS_EBADF;
+	struct fs_fd *filedes;
+	int ret,count;
+
 	if( len<0 || !buf )
 		return -STATUS_EINVAL;
 
-	int count = fd_table[fd].size - fd_table[fd].pos;
-	if( count > len ) count = len;
+	if( !(filedes=fd_get(fd)) )
+		return -STATUS_EBADF;
+	
+	count=filedes->size-filedes->pos;
+	if( count>len ) count=len;
+	ret=file_read(filedes, buf, count);
+	if( ret>0 ) filedes->pos+=ret;
+	
+	fd_put(filedes);
 
-	return file_read(&fd_table[fd], buf, count);
+	return ret;
 }
 int sys_write(int fd, const void *buf, size_t len)
 {
 	/* TODO */
-	if( fd<0 || fd>=FS_FD_MAX )
-		return -STATUS_EBADF;
+	struct fs_fd *filedes;
+	int ret;
+
 	if( len<0 || !buf )
 		return -STATUS_EINVAL;
 
-	int retVal = file_write(&fd_table[fd], buf, len);
-	fd_table[fd].size = f_size((FIL*)fd_table[fd].data);
-	return retVal;
+	if( !(filedes=fd_get(fd)) )
+		return -STATUS_EBADF;	
+
+	ret=file_write(filedes, buf, len);
+	if(ret>0) filedes->pos+=ret;
+	filedes->size=f_size((FIL*)filedes->data);
+	
+	fd_put(filedes);
+	
+	return ret;
+
 }
 /* Note: Check the whence parameter and calcuate the new offset value before do file_seek() */
 off_t sys_lseek(int fd, off_t offset, int whence)
 {
 	/* TODO */
-	if( fd<0 || fd>=FS_FD_MAX )
-		return -STATUS_EBADF;
+	struct fs_fd *filedes;
+	int ret,new_pos;
+
 	if( offset<0 )
 		return -STATUS_EINVAL;
-	int new_pos;
+
+	if( !(filedes=fd_get(fd)) )
+		return -STATUS_EBADF;
+
 	switch(whence){
 		case SEEK_SET:
 			new_pos = offset;
 			break;
 		case SEEK_CUR:
-			new_pos = fd_table[fd].pos+offset;
+			new_pos = filedes->pos+offset;
 			break;
 		case SEEK_END:
-			new_pos = fd_table[fd].size+offset;
+			new_pos = filedes->size+offset;
 			break;
 		default:
+			fd_put(filedes);
 			return -STATUS_EINVAL;
 	}
-	fd_table[fd].pos = new_pos;
-	return file_lseek(&fd_table[fd], new_pos);
+	filedes->pos = new_pos;
+	if(!(ret=file_lseek(&fd_table[fd], new_pos)))
+		ret=new_pos;
+	fd_put(filedes);
+	
+	return ret;
 }
 
 int sys_unlink(const char *pathname)

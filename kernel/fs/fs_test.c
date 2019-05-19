@@ -1,5 +1,5 @@
 #include "ff.h"
-
+#include <inc/stdio.h>
 /* Low level I/O API test */
 void fs_test()
 {

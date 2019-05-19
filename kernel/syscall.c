@@ -30,7 +30,13 @@ int32_t do_syscall(uint32_t syscallno, uint32_t a1, uint32_t a2, uint32_t a3, ui
 	extern void sys_kill(int);
 	extern void sys_settextcolor(unsigned char, unsigned char);
 	extern void sys_cls();
-
+	extern int sys_open(const char *file,int flags,int mode);
+	extern int sys_close(int fd);
+	extern int sys_read(int fd, void *buf, size_t len);
+	extern int sys_write(int fd, const void* buf, size_t len);
+	extern int sys_lseek(int fd, off_t offset, int whence);
+	extern int sys_unlink(const char* pathname);
+	
 	switch (syscallno)
 	{
 		case SYS_fork:
@@ -90,11 +96,30 @@ int32_t do_syscall(uint32_t syscallno, uint32_t a1, uint32_t a2, uint32_t a3, ui
 
 		/* TODO: Lab7 file I/O system call */
 		case SYS_open:
+			retVal = sys_open((const char*)a1,a2,a3);
+			break;
+		
 		case SYS_read:
+			retVal = sys_read(a1,(void *)a2,a3);
+			break;
+		
 		case SYS_write:
+			retVal = sys_write(a1,(void *)a2,a3);
+			break;
+		
 		case SYS_close:
+			retVal = sys_close(a1);
+			break;
+		
 		case SYS_lseek:
+			retVal = sys_lseek(a1,a2,a3);
+			break;
+		
 		case SYS_unlink:
+			retVal = sys_unlink((const char *)a1);
+			break;
+
+		default:
 			retVal = -1; //Not yet implemented
 			break;
 	}

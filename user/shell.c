@@ -297,7 +297,7 @@ int filetest4(int argc, char **argv)
     }
 
     fd = open("test4", O_WRONLY, 0);
-    uassert(fd == -STATUS_ENOENT);
+	uassert(fd == -STATUS_ENOENT);
 
     fd = open("test4", O_WRONLY | O_CREAT | O_TRUNC, 0);
     uassert(fd >= STATUS_OK);

@@ -82,6 +82,7 @@ int fr2status(int fret){
 
 		/* (4) Could not find the file */
 		case FR_NO_FILE:
+			ret = STATUS_ENOENT;
 			break;
 
 		/* (5) Could not find the path */
@@ -153,7 +154,7 @@ int fr2status(int fret){
 			ret = STATUS_EINVAL;
 			break;
 	}
-	return ret;
+	return -ret;
 }
 
 int fs_init()
