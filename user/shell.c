@@ -27,8 +27,45 @@ int filetest3(int argc, char **argv);
 int filetest4(int argc, char **argv);
 int filetest5(int argc, char **argv);
 int spinlocktest(int argc, char **argv);
-
-
+int ls(int argc, char **argv);
+int rm(int argc, char **argv);
+int touch(int argc, char **argv);
+int test(int argc, char **argv){
+	int i,k,fd;
+	char buf[2]="1";
+	char name[9]="/d/00000";
+	if( mkdir("/d")<0 ){
+		cprintf("mkdir err\n");
+		return 0;
+	}
+	for(i=0;i<100000;i++){
+		k=7;
+		while(name[k]=='9'){
+			name[k]='0';
+			k--;
+		}
+		name[k]+=1;
+		//if( mkdir(name)<0 ){
+		//	cprintf("dir %s name mkdir err\n");
+		//	return 0;
+		//}
+		
+		fd=open(name, O_RDWR|O_CREAT|O_TRUNC,0);
+		if(fd<0){
+			cprintf("%s create failed! ERR %d\n",name, fd);
+			break;
+		}
+		if(!write(fd,buf,1)){	
+			cprintf("%s write failed! ERR %d\n",name, fd);
+		}
+		close(fd);
+		cprintf("%s create!\n",name);
+	}
+	//int fd =  open("test1", O_RDWR | O_CREAT | O_TRUNC, 0);
+	//write(fd,"0",1);
+	//close(fd);
+	return 0;
+}
 struct Command commands[] = {
   { "help", "Display this list of commands", mon_help },
   { "mem_stat", "Show current usage of physical memory", mem_stat },
@@ -42,7 +79,11 @@ struct Command commands[] = {
   { "filetest3", "Laqrge block test", filetest3},
   { "filetest4", "Error test", filetest4},
   { "filetest5", "unlink test", filetest5},
-  { "spinlocktest", "Test spinlock", spinlocktest }
+  { "spinlocktest", "Test spinlock", spinlocktest },
+  { "ls", "list files", ls},
+  { "rm", "remove the file", rm},
+  { "touch", "create an empty file", touch},
+  { "test", "test", test}
 };
 const int NCOMMANDS = (sizeof(commands)/sizeof(commands[0]));
 
@@ -531,6 +572,31 @@ int fs_speed_test(int argc, char **argv)
 	return 0;
 }
 
+int ls(int argc, char **argv)
+{
+	if(argc==1) list("/");
+	else list(argv[1]);
+	return 0;
+}
+
+int rm(int argc, char **argv)
+{
+	if(argc<2) cprintf("Cannot remove (no path name).\n");
+	if(unlink(argv[1])<0)
+		cprintf("Cannot remove %s\n", argv[1]);
+	return 0;
+}
+
+int touch(int argc, char **argv)
+{
+	int fd =  open(argv[1], O_RDWR | O_CREAT | O_TRUNC, 0);
+	if(fd<0) {
+		cprintf("Cannot open file, err: %d", fd);
+		return 0;
+	}
+	close(fd);
+	return 0;
+}
 void shell()
 {
 	cprintf("Welcome to the OSDI course!\n");

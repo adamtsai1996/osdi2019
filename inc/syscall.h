@@ -1,4 +1,5 @@
 #ifndef USR_SYSCALL_H
+int sys_list(const char *pathname);
 #define USR_SYSCALL_H
 #include <inc/types.h>
 
@@ -23,6 +24,8 @@ enum {
   SYS_lseek,
   SYS_unlink,
   SYS_readdir,
+  SYS_list,
+  SYS_mkdir,
   NSYSCALLS
 };
 
@@ -57,4 +60,6 @@ int sys_write(int fd, const void *buf, size_t len);
 off_t sys_lseek(int fd, off_t offset, int whence);
 int sys_unlink(const char *pathname);
 int sys_readdir(int fd,  char *buf ,int *type, unsigned long *size);
+int sys_list(const char *pathname);
+int sys_mkdir(const char *pathname);
 #endif

@@ -166,3 +166,12 @@ int sys_unlink(const char *pathname)
 	return file_unlink(pathname);
 }
 
+int sys_list(const char *pathname)
+{
+	return file_list(pathname);
+}
+
+int sys_mkdir(const char *pathname)
+{
+	return file_mkdir(pathname);
+}

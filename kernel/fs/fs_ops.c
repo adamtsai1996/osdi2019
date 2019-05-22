@@ -102,6 +102,44 @@ int fat_unlink(struct fs_fd* file, const char *pathname)
 {
 	return -f_unlink(pathname);
 }
+int fat_list(const char *pathname)
+{
+	FILINFO f_info;
+	DIR dir;
+	int ret = f_stat(pathname,&f_info);
+
+	if( ret==0 && !(f_info.fattrib&AM_DIR) ){
+		printk("File %8d\t%s\n", f_info.fsize, f_info.fname);
+		return -FR_OK;
+	}
+
+	if( (ret=f_opendir(&dir, pathname))!=FR_OK ){
+		printk("%s : File or path not exit.\n", pathname);
+		return -ret;
+	}
+
+	while(1){
+		ret = f_readdir(&dir, &f_info);
+		if( ret!=FR_OK ){
+			f_closedir(&dir);
+			return -ret;
+		}
+
+		if( f_info.fname[0]==0 )
+			return -f_closedir(&dir);
+
+		if( f_info.fattrib&AM_DIR )
+			printk("DIR  %8d\t%s\n", f_info.fsize, f_info.fname);
+		else
+			printk("File %8d\t%s\n", f_info.fsize, f_info.fname);
+	}
+}
+
+int fat_mkdir(const char *pathname)
+{
+	return -f_mkdir(pathname);
+}
+
 
 struct fs_ops elmfat_ops = {
     .dev_name = "elmfat",
@@ -112,7 +150,9 @@ struct fs_ops elmfat_ops = {
     .read = fat_read,
     .write = fat_write,
     .lseek = fat_lseek,
-    .unlink = fat_unlink
+    .unlink = fat_unlink,
+	.list = fat_list,
+	.mkdir = fat_mkdir
 };
 
 

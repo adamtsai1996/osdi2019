@@ -55,6 +55,8 @@ struct fs_ops
     //int (*getdents)	(struct fs_fd* fd, struct dirent* dirp, uint32_t count);
     int (*unlink)	(struct fs_fd* fs, const char* pathname);
 
+	int (*list)		(const char *pathname);
+	int (*mkdir)	(const char *pathname);
 };
 
 
@@ -68,6 +70,9 @@ int file_write(struct fs_fd* fd, const void *buf, size_t len);
 
 int file_lseek(struct fs_fd* fd, off_t offset);
 int file_unlink(const char *path);
+
+int file_list(const char *pathname);
+int file_mkdir(const char *pathname);
 
 struct fs_fd* fd_get(int fd);
 void fd_put(struct fs_fd* fd);

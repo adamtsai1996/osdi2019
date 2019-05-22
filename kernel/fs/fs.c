@@ -60,8 +60,8 @@ struct fs_dev fat_fs = {
  */
 
 int fr2status(int fret){
-	int ret = -1;
-	switch(-fret){
+	int ret = 1;
+	switch(fret){
 		/* (0) Succeeded */
 		case FR_OK:
 			ret = STATUS_OK;
@@ -154,7 +154,7 @@ int fr2status(int fret){
 			ret = STATUS_EINVAL;
 			break;
 	}
-	return -ret;
+	return ret;
 }
 
 int fs_init()
@@ -195,7 +195,7 @@ int fs_mount(const char* device_name, const char* path, const void* data)
 	if(strcmp(device_name,fat_fs.ops->dev_name)) return -STATUS_EIO;
 	strcpy(fat_fs.path, path);
 	int ret = fat_fs.ops->mount(&fat_fs, data);
-	if( ret<0 ) return fr2status(ret);
+	if( ret<0 ) return -fr2status(-ret);
 	return ret;
 }
 
@@ -205,45 +205,55 @@ int file_open(struct fs_fd* fd, const char *path, int flags)
 	fd->flags = flags;
 	strcpy(fd->path,path);
 	int ret = fat_fs.ops->open(fd);
-	if( ret<0 ) return fr2status(ret);
+	if( ret<0 ) return -fr2status(-ret);
 	return ret;
 }
 
 int file_read(struct fs_fd* fd, void *buf, size_t len)
 {
 	int ret = fat_fs.ops->read(fd,buf,len);
-	if( ret<0 ) return fr2status(ret);
+	if( ret<0 ) return -fr2status(-ret);
 	return ret;
 }
 
 int file_write(struct fs_fd* fd, const void *buf, size_t len)
 {
 	int ret = fat_fs.ops->write(fd,buf,len);
-	if( ret<0 ) return fr2status(ret);
+	if( ret<0 ) return -fr2status(-ret);
 	return ret;
 }
 
 int file_close(struct fs_fd* fd)
 {
 	int ret = fat_fs.ops->close(fd);
-	if( ret<0 ) return fr2status(ret);
+	if( ret<0 ) return -fr2status(-ret);
 	return ret;
 }
 
 int file_lseek(struct fs_fd* fd, off_t offset)
 {
 	int ret = fat_fs.ops->lseek(fd, offset);
-	if( ret<0 ) return fr2status(ret);
+	if( ret<0 ) return -fr2status(-ret);
 	return ret;
 }
 int file_unlink(const char *path)
 {
 	int ret = fat_fs.ops->unlink(0,path);
-	if( ret<0 ) return fr2status(ret);
+	if( ret<0 ) return -fr2status(-ret);
 	return ret;
 }
-
-
+int file_list(const char *path)
+{
+	int ret = fat_fs.ops->list(path);
+	if( ret<0 ) return -fr2status(-ret);
+	return ret;
+}
+int file_mkdir(const char *path)
+{
+	int ret = fat_fs.ops->mkdir(path);
+	if( ret<0 ) return -fr2status(-ret);
+	return ret;
+}
 /**
  * @ingroup Fd
  * This function will allocate a file descriptor.

@@ -5255,6 +5255,14 @@ FRESULT f_mkfs (
 		return FR_MKFS_ABORTED;
 	}
 
+	
+	printk("n_clst %8d\n", n_clst);
+	printk("n_vol  %8d sectors\n", n_vol);
+	printk("n_rsv  %8d sectors\n", n_rsv);
+	printk("n_fat  %8d sectors\n", n_fat*N_FATS);
+	printk("n_dir  %8d sectors\n", n_dir);
+	printk("au     %8d sectors\n", au);
+	
 	/* Determine system ID in the partition table */
 	if (fmt == FS_FAT32) {
 		sys = 0x0C;		/* FAT32X */
